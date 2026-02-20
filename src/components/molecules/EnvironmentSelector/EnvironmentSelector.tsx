@@ -10,8 +10,10 @@ import { SelectOption } from '@/components/atoms/Select/Select';
 import { useNavigate } from 'react-router';
 import { RouteNames } from '@/core/routes/Routes';
 import { useEnvironment } from '@/hooks/useEnvironment';
+import { useRestrictedEnvs, EnvRestrictionState } from '@/hooks/useRestrictedEnvs';
 import { Button } from '@/components/atoms';
 import EnvironmentCreator from '../EnvironmentCreator/EnvironmentCreator';
+import ContactUsDialog from '../ContactUsDialog/ContactUsDialog';
 import { ENVIRONMENT_TYPE } from '@/models/Environment';
 
 interface Props {
@@ -66,9 +68,11 @@ const EnvironmentSelector: React.FC<Props> = ({ disabled = false, className }) =
 	const { setLoading } = useGlobalLoading();
 
 	const { environments, activeEnvironment, changeActiveEnvironment, refetchEnvironments, isDevelopment, isProduction } = useEnvironment();
+	const { getRestriction } = useRestrictedEnvs();
 
 	const [isOpen, setIsOpen] = useState(false);
 	const [isCreatorOpen, setIsCreatorOpen] = useState(false);
+	const [isSuspendedDialogOpen, setIsSuspendedDialogOpen] = useState(false);
 
 	if (loading)
 		return (
@@ -88,6 +92,12 @@ const EnvironmentSelector: React.FC<Props> = ({ disabled = false, className }) =
 	}));
 
 	const handleChange = async (environmentId: string) => {
+		const restriction = getRestriction(environmentId);
+		if (restriction.state === EnvRestrictionState.Suspended) {
+			setIsOpen(false);
+			setIsSuspendedDialogOpen(true);
+			return;
+		}
 		setLoading(true);
 		try {
 			changeActiveEnvironment(environmentId);
@@ -183,6 +193,13 @@ const EnvironmentSelector: React.FC<Props> = ({ disabled = false, className }) =
 						handleChange(environmentId);
 					}
 				}}
+			/>
+
+			<ContactUsDialog
+				isOpen={isSuspendedDialogOpen}
+				onOpenChange={setIsSuspendedDialogOpen}
+				title='Environment suspended'
+				description='This environment is temporarily closed. Contact us to continue.'
 			/>
 		</div>
 	);

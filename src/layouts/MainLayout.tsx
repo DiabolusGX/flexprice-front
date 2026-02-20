@@ -1,7 +1,7 @@
 import { Outlet, useNavigate } from 'react-router';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Sidebar } from '@/components/molecules/Sidebar';
-import { BreadCrumbs, DebugMenu } from '@/components/molecules';
+import { BreadCrumbs, DebugMenu, RestrictedEnvBanner } from '@/components/molecules';
 import { CommandPalette } from '@/components/organisms';
 import useUser from '@/hooks/useUser';
 import posthog from 'posthog-js';
@@ -54,6 +54,7 @@ const MainLayout: React.FC = () => {
 			{/* Right Layout */}
 			<SidebarInset className='flex flex-col flex-1 bg-white h-screen relative'>
 				<BreadCrumbs />
+				<RestrictedEnvBanner />
 				{/* Main Content */}
 				<main className='flex-1 px-4 relative overflow-y-auto '>
 					<Outlet />

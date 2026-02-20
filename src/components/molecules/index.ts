@@ -5,6 +5,8 @@
 // Navigation & Layout
 export { Sidebar } from './Sidebar';
 export { default as BreadCrumbs } from './BreadCrumbs';
+export { default as RestrictedEnvBanner } from './RestrictedEnvBanner';
+export { default as ContactUsDialog } from './ContactUsDialog';
 export { default as Pagination } from './Pagination';
 
 // Tables & Data Display

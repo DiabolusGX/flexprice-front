@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { Button, Page } from '@/components/atoms';
 import { EventsTable, ApiDocsContent, QueryBuilder } from '@/components/molecules';
 import { Event } from '@/models/Event';
@@ -61,6 +62,22 @@ const convertFiltersToEventParams = (filters: TypedBackendFilter[]): Partial<Get
 
 	return params;
 };
+
+type PropertyFilterRow = { id: string; key: string; value: string };
+
+const buildPropertyFiltersString = (rows: PropertyFilterRow[]): string | undefined => {
+	const pairs = rows
+		.filter((r) => (r.key ?? '').trim() && (r.value ?? '').trim())
+		.map((r) => `${(r.key ?? '').trim()}:${(r.value ?? '').trim()}`);
+	if (pairs.length === 0) return undefined;
+	return `${pairs.join(';')};`;
+};
+
+const createEmptyPropertyFilter = (): PropertyFilterRow => ({
+	id: uuidv4(),
+	key: '',
+	value: '',
+});
 
 const sortingOptions: SortOption[] = [
 	{
@@ -136,6 +153,7 @@ const EventsPage: React.FC = () => {
 	const [hasMore, setHasMore] = useState(true);
 	const [loading, setLoading] = useState(false);
 	const [iterLastKey, setIterLastKey] = useState<string | undefined>(undefined);
+	const [propertyFilters, setPropertyFilters] = useState<PropertyFilterRow[]>(() => [createEmptyPropertyFilter()]);
 	const observer = useRef<IntersectionObserver | null>(null);
 
 	const initialFilters = useMemo(() => {
@@ -175,6 +193,13 @@ const EventsPage: React.FC = () => {
 				dataType: DataType.DATE,
 				id: 'initial-start-time',
 			},
+			{
+				field: 'end_time',
+				operator: FilterOperator.BEFORE,
+				valueDate: undefined,
+				dataType: DataType.DATE,
+				id: 'initial-end-time',
+			},
 		];
 	}, []);
 
@@ -207,8 +232,11 @@ const EventsPage: React.FC = () => {
 
 	// Convert sanitized filters to API parameters - only include parameters that are actually specified
 	const apiParams = useMemo(() => {
-		return convertFiltersToEventParams(sanitizedFilters);
-	}, [sanitizedFilters]);
+		const params = convertFiltersToEventParams(sanitizedFilters);
+		const propertyFiltersStr = buildPropertyFiltersString(propertyFilters);
+		if (propertyFiltersStr) params.property_filters = propertyFiltersStr;
+		return params;
+	}, [sanitizedFilters, propertyFilters]);
 
 	// Fetch events from API
 	const fetchEvents = useCallback(
@@ -245,6 +273,7 @@ const EventsPage: React.FC = () => {
 
 	const resetFilters = () => {
 		setFilters(initialFilters);
+		setPropertyFilters([createEmptyPropertyFilter()]);
 		refetchEvents();
 	};
 
@@ -272,6 +301,11 @@ const EventsPage: React.FC = () => {
 					sortOptions={sortingOptions}
 					onSortChange={setSorts}
 					selectedSorts={sorts}
+					propertyFiltersConfig={{
+						rows: propertyFilters,
+						setRows: setPropertyFilters,
+						createEmpty: createEmptyPropertyFilter,
+					}}
 				/>
 				<Button variant='outline' onClick={resetFilters}>
 					<RefreshCw />

@@ -101,6 +101,8 @@ export interface GetEventsPayload {
 	page_size?: number;
 	event_id?: string;
 	source?: string;
+	/** Semicolon-separated key:value list for GET, e.g. "gpu_type:nvidia-h100;gpu_mins:1;" */
+	property_filters?: string;
 }
 
 // Request for POST /events/query

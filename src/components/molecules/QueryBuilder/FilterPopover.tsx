@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Trash2, GripVertical, ListFilter, X } from 'lucide-react';
+import { Trash2, GripVertical, ListFilter, X, Plus } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { Combobox, DatePicker, Toggle, Button, Select } from '@/components/atoms';
@@ -16,12 +16,28 @@ import FilterMultiSelect from './FilterMultiSelect';
 import FilterAsyncSelect from './FilterAsyncSelect';
 import FilterAsyncMultiSelect from './FilterAsyncMultiSelect';
 
+export interface PropertyFilterRow {
+	id: string;
+	key: string;
+	value: string;
+}
+
+interface PropertyFiltersConfig {
+	rows: PropertyFilterRow[];
+	setRows: React.Dispatch<React.SetStateAction<PropertyFilterRow[]>>;
+	createEmpty: () => PropertyFilterRow;
+}
+
 interface Props {
 	fields: FilterField[];
 	value: FilterCondition[];
 	onChange: (filters: FilterCondition[]) => void;
 	className?: string;
 	sortable?: boolean;
+	/** When provided, renders a "Property filters" section (key/value rows) inside the popover below the filter list. */
+	propertyFilters?: PropertyFiltersConfig;
+	/** Called when "Reset filters" is clicked, so the parent can clear extra state (e.g. property filters). */
+	onResetCallback?: () => void;
 }
 
 const MIN_POPOVER_WIDTH = 400;
@@ -62,7 +78,15 @@ const getNewFilterWithDefaultValues = (field: FilterField): FilterCondition => (
 	...getDefaultValueByFieldType(field),
 });
 
-const FilterPopover: React.FC<Props> = ({ fields, value = [], onChange, className, sortable = false }) => {
+const FilterPopover: React.FC<Props> = ({
+	fields,
+	value = [],
+	onChange,
+	className,
+	sortable = false,
+	propertyFilters,
+	onResetCallback,
+}) => {
 	const [isOpen, setIsOpen] = useState(false);
 
 	const handleAddFilter = useCallback(() => {
@@ -285,10 +309,23 @@ const FilterPopover: React.FC<Props> = ({ fields, value = [], onChange, classNam
 									<X className='h-3.5 w-3.5' />
 								</Button>
 							</div>
-							<div className='mt-2'>
+							<div className='flex items-center gap-2 mt-2'>
 								<Button size='sm' onClick={handleAddFilter} className='w-fit h-9 text-sm px-2.5'>
 									Add filter
 								</Button>
+								{(onResetCallback != null || propertyFilters != null) && (
+									<Button
+										variant='outline'
+										size='sm'
+										onClick={() => {
+											onChange([]);
+											if (propertyFilters) propertyFilters.setRows([propertyFilters.createEmpty()]);
+											onResetCallback?.();
+										}}
+										className='h-9 text-sm px-2.5'>
+										Reset filters
+									</Button>
+								)}
 							</div>
 						</div>
 					) : (
@@ -377,11 +414,67 @@ const FilterPopover: React.FC<Props> = ({ fields, value = [], onChange, classNam
 								</SortableOverlay>
 							</Sortable>
 
+							{propertyFilters ? (
+								<div className='pt-3 mt-2 border-t border-border'>
+									<h4 className='text-sm font-medium leading-none'>Property filters</h4>
+									<div className='space-y-3'>
+										{propertyFilters.rows.map((row) => (
+											<div key={row.id} className='flex gap-2 items-end flex-wrap'>
+												<div className='flex-1 min-w-[120px]'>
+													<Input
+														placeholder='Key'
+														value={row.key}
+														onChange={(e) =>
+															propertyFilters.setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, key: e.target.value } : r)))
+														}
+														className='h-9 text-sm'
+													/>
+												</div>
+												<div className='flex-1 min-w-[120px]'>
+													<Input
+														placeholder='Value'
+														value={row.value}
+														onChange={(e) =>
+															propertyFilters.setRows((prev) => prev.map((r) => (r.id === row.id ? { ...r, value: e.target.value } : r)))
+														}
+														className='h-9 text-sm'
+													/>
+												</div>
+												<Button
+													variant='ghost'
+													size='icon'
+													className='h-7 w-7 shrink-0 hover:bg-destructive/10 hover:text-destructive'
+													onClick={() => propertyFilters.setRows((prev) => (prev.length > 1 ? prev.filter((r) => r.id !== row.id) : prev))}
+													aria-label='Remove property filter'>
+													<Trash2 className='h-3.5 w-3.5' />
+												</Button>
+											</div>
+										))}
+									</div>
+									<Button
+										variant='outline'
+										size='sm'
+										className='mt-2 h-9 text-sm px-2.5 flex items-center gap-1'
+										onClick={() => propertyFilters.setRows((prev) => [...prev, propertyFilters.createEmpty()])}>
+										<Plus className='size-4' />
+										Add property filter
+									</Button>
+								</div>
+							) : null}
+
 							<div className='flex items-center gap-2 pt-1.5 px-2'>
 								<Button size='sm' onClick={handleAddFilter} className='h-9 text-sm px-2.5 flex items-center gap-1'>
 									Add filter
 								</Button>
-								<Button variant='outline' size='sm' onClick={() => onChange([])} className='h-9 text-sm px-2.5'>
+								<Button
+									variant='outline'
+									size='sm'
+									onClick={() => {
+										onChange([]);
+										if (propertyFilters) propertyFilters.setRows([propertyFilters.createEmpty()]);
+										onResetCallback?.();
+									}}
+									className='h-9 text-sm px-2.5'>
 									Reset filters
 								</Button>
 							</div>

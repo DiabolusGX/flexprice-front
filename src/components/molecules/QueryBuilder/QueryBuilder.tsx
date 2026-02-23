@@ -18,6 +18,15 @@ interface Props {
 	// default is 500ms
 	// give time in milliseconds
 	debounceTime?: number;
+
+	/** When provided, the filter popover shows a "Property filters" section (key/value rows) below the filter list. */
+	propertyFiltersConfig?: {
+		rows: { id: string; key: string; value: string }[];
+		setRows: React.Dispatch<React.SetStateAction<{ id: string; key: string; value: string }[]>>;
+		createEmpty: () => { id: string; key: string; value: string };
+	};
+	/** Called when "Reset filters" is clicked in the popover (optional; property filters are cleared automatically when propertyFiltersConfig is provided). */
+	onFilterPopoverReset?: () => void;
 }
 
 const QueryBuilder = ({
@@ -28,6 +37,8 @@ const QueryBuilder = ({
 	onSortChange = () => {},
 	selectedSorts = [],
 	debounceTime = 500,
+	propertyFiltersConfig,
+	onFilterPopoverReset,
 }: Props) => {
 	const [filter, setFilter] = useState<FilterCondition[]>(filters);
 	const [localSorts, setLocalSorts] = useState<SortOption[]>(selectedSorts);
@@ -112,7 +123,15 @@ const QueryBuilder = ({
 	return (
 		<div className='flex flex-wrap items-center gap-3 mb-5'>
 			{/* Filter options */}
-			{fields.length > 0 && <FilterPopover fields={fields} value={filter} onChange={handleFilterChange} />}
+			{fields.length > 0 && (
+				<FilterPopover
+					fields={fields}
+					value={filter}
+					onChange={handleFilterChange}
+					propertyFilters={propertyFiltersConfig}
+					onResetCallback={onFilterPopoverReset}
+				/>
+			)}
 
 			{/* Sort options */}
 			{sortOptions.length > 0 && selectedSorts && (

@@ -34,18 +34,6 @@ const DuplicatePlanDialog: FC<DuplicatePlanDialogProps> = ({
 	const [metadataString, setMetadataString] = useState('');
 	const [errors, setErrors] = useState<FormErrors>({});
 
-	useEffect(() => {
-		if (open && plan) {
-			setName('');
-			setLookupKey('');
-			setDescription(plan.description || '');
-			// Pre-fill metadata without "source" so the field shows only user-facing metadata; we add source: "clone" on submit
-			const { source: _omit, ...restMetadata } = plan.metadata || {};
-			setMetadataString(Object.keys(restMetadata).length > 0 ? JSON.stringify(restMetadata, null, 2) : '');
-			setErrors({});
-		}
-	}, [open, plan]);
-
 	// Auto-generate lookup key from name (same as Add Plan dialog)
 	useEffect(() => {
 		if (open) {
@@ -108,11 +96,11 @@ const DuplicatePlanDialog: FC<DuplicatePlanDialogProps> = ({
 	const handleSubmit = () => {
 		if (!validate() || !plan) return;
 
-		let metadata: ClonePlanRequest['metadata'] = { ...plan.metadata, source: 'clone' };
+		let metadata: ClonePlanRequest['metadata'] = { source: 'clone' };
 		if (metadataString.trim()) {
 			try {
 				const parsed = JSON.parse(metadataString);
-				metadata = { ...plan.metadata, ...parsed, source: 'clone' };
+				metadata = { ...parsed, source: 'clone' };
 			} catch {
 				return;
 			}

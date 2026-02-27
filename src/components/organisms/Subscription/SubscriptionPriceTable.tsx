@@ -130,20 +130,22 @@ const PriceQuantityCell: FC<PriceQuantityCellProps> = ({
 	onPriceOverride,
 	onClearCoupon,
 }) => {
-	// Clear transient when it matches override so display stays correct after override is reset
+	const minQuantity = price.min_quantity ?? 1;
+	const currentQuantity = override?.quantity ?? minQuantity;
+	const displayQuantity = quantityInput ?? currentQuantity.toString();
+
+	// Clear transient only when override was removed (e.g. Reset Override) so we show minQuantity.
+	// We do not clear when override.quantity matches quantityInput, to avoid clearing right after user types.
 	useEffect(() => {
-		if (override?.quantity !== undefined && quantityInput != null && override.quantity.toString() === quantityInput) {
-			onQuantityChange(null);
+		if (override !== undefined || quantityInput == null || quantityInput === '') {
+			return;
 		}
-	}, [override?.quantity, quantityInput, onQuantityChange]);
+		onQuantityChange(null);
+	}, [override, quantityInput, onQuantityChange]);
 
 	if (price.type !== PRICE_TYPE.FIXED) {
 		return <>pay as you go</>;
 	}
-
-	const minQuantity = price.min_quantity ?? 1;
-	const currentQuantity = override?.quantity ?? minQuantity;
-	const displayQuantity = quantityInput ?? currentQuantity.toString();
 
 	return (
 		<div className='w-20' data-interactive='true'>

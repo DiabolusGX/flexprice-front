@@ -233,7 +233,15 @@ const PlanDetailsPage = () => {
 								{isSyncing ? (
 									<span className='text-sm'>Syncing...</span>
 								) : isSyncRunning ? (
-									<span className='text-sm'>Sync in progress. You can check status in Developer → Workflows.</span>
+									<span className='text-sm'>
+										Sync in progress. You can check status in{' '}
+										<button
+											onClick={() => navigate(`${RouteNames.workflows}?entity_id=${planId}`)}
+											className='text-blue-600 hover:text-blue-800 underline'>
+											Workflows
+										</button>
+										.
+									</span>
 								) : latestRun?.status === 'Completed' ? (
 									<span className='text-sm'>Sync completed. You can sync again.</span>
 								) : latestRun?.status === 'Failed' ? (

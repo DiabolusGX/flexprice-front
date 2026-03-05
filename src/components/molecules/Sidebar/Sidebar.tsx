@@ -44,10 +44,10 @@ const AppSidebar: React.FC<React.ComponentProps<typeof Sidebar>> = ({ ...props }
 					title: 'Price Units',
 					url: RouteNames.priceUnits,
 				},
-				// {
-				// 	title: 'Groups',
-				// 	url: RouteNames.groups,
-				// },
+				{
+					title: 'Groups',
+					url: RouteNames.groups,
+				},
 			],
 		},
 		{

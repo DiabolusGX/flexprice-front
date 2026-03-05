@@ -1,92 +1,194 @@
-import { FC, useState } from 'react';
-import { Page, AddButton, Loader, Spacer } from '@/components/atoms';
-import { ApiDocsContent } from '@/components/molecules/ApiDocs';
-import { useQuery } from '@tanstack/react-query';
-import { GroupApi } from '@/api/GroupApi';
-import usePagination from '@/hooks/usePagination';
-import GroupsTable from '@/components/molecules/GroupsTable';
-import GroupDrawer from '@/components/molecules/GroupDrawer';
+import { AddButton, Page, ActionButton, Chip } from '@/components/atoms';
+import { ApiDocsContent, GroupDrawer } from '@/components/molecules';
+import { ColumnData } from '@/components/molecules/Table';
+import { QueryableDataArea } from '@/components/organisms';
 import { Group } from '@/models/Group';
-import { ListGroupsResponse } from '@/types/dto';
-import ShortPagination from '@/components/atoms/ShortPagination';
-import EmptyPage from '@/components/organisms/EmptyPage';
+import { GROUP_ENTITY_TYPE } from '@/models/Group';
+import { ENTITY_STATUS } from '@/models';
 import GUIDES from '@/constants/guides';
-import toast from 'react-hot-toast';
+import { useState, useMemo } from 'react';
+import { GroupApi } from '@/api/GroupApi';
+import {
+	FilterField,
+	FilterFieldType,
+	DEFAULT_OPERATORS_PER_DATA_TYPE,
+	DataType,
+	FilterOperator,
+	SortOption,
+	SortDirection,
+	FilterCondition,
+} from '@/types/common/QueryBuilder';
+import formatDate from '@/utils/common/format_date';
+import formatChips from '@/utils/common/format_chips';
 
-const GroupsPage: FC = () => {
-	const { limit, offset } = usePagination();
+const sortingOptions: SortOption[] = [
+	{ field: 'name', label: 'Name', direction: SortDirection.ASC },
+	{ field: 'created_at', label: 'Created At', direction: SortDirection.DESC },
+	{ field: 'updated_at', label: 'Updated At', direction: SortDirection.DESC },
+];
+
+const filterOptions: FilterField[] = [
+	{
+		field: 'name',
+		label: 'Name',
+		fieldType: FilterFieldType.INPUT,
+		operators: DEFAULT_OPERATORS_PER_DATA_TYPE[DataType.STRING],
+		dataType: DataType.STRING,
+	},
+	{
+		field: 'lookup_key',
+		label: 'Lookup Key',
+		fieldType: FilterFieldType.INPUT,
+		operators: DEFAULT_OPERATORS_PER_DATA_TYPE[DataType.STRING],
+		dataType: DataType.STRING,
+	},
+	{
+		field: 'status',
+		label: 'Status',
+		fieldType: FilterFieldType.MULTI_SELECT,
+		operators: [FilterOperator.IN, FilterOperator.NOT_IN],
+		dataType: DataType.ARRAY,
+		options: [
+			{ value: ENTITY_STATUS.PUBLISHED, label: 'Active' },
+			{ value: ENTITY_STATUS.ARCHIVED, label: 'Inactive' },
+		],
+	},
+	{
+		field: 'created_at',
+		label: 'Created At',
+		fieldType: FilterFieldType.DATEPICKER,
+		operators: DEFAULT_OPERATORS_PER_DATA_TYPE[DataType.DATE],
+		dataType: DataType.DATE,
+	},
+];
+
+const initialFilters: FilterCondition[] = [
+	{
+		field: 'name',
+		operator: FilterOperator.CONTAINS,
+		valueString: '',
+		dataType: DataType.STRING,
+		id: 'initial-name',
+	},
+	{
+		field: 'lookup_key',
+		operator: FilterOperator.CONTAINS,
+		valueString: '',
+		dataType: DataType.STRING,
+		id: 'initial-lookup_key',
+	},
+	{
+		field: 'status',
+		operator: FilterOperator.IN,
+		valueArray: [ENTITY_STATUS.PUBLISHED],
+		dataType: DataType.ARRAY,
+		id: 'initial-status',
+	},
+];
+
+const initialSorts: SortOption[] = [{ field: 'updated_at', label: 'Updated At', direction: SortDirection.DESC }];
+
+const GroupsPage = () => {
 	const [activeGroup, setActiveGroup] = useState<Group | null>(null);
 	const [groupDrawerOpen, setGroupDrawerOpen] = useState(false);
-
-	const {
-		data: groupsData,
-		isLoading,
-		isError,
-		error,
-	} = useQuery<ListGroupsResponse>({
-		queryKey: ['fetchGroups', { limit, offset }],
-		queryFn: () => GroupApi.getGroupsByFilter({ limit, offset }),
-	});
 
 	const handleOnAdd = () => {
 		setActiveGroup(null);
 		setGroupDrawerOpen(true);
 	};
 
-	if (isError) {
-		const err = error as any;
-		toast.error(err?.error?.message || 'Error fetching groups');
-		return null;
-	}
+	const handleEdit = (group: Group) => {
+		setActiveGroup(group);
+		setGroupDrawerOpen(true);
+	};
 
-	if (isLoading) {
-		return <Loader />;
-	}
-
-	const showEmptyPage = !isLoading && groupsData?.items.length === 0;
-
-	if (showEmptyPage) {
-		return (
-			<div className='space-y-6'>
-				<GroupDrawer data={activeGroup} open={groupDrawerOpen} onOpenChange={setGroupDrawerOpen} refetchQueryKeys={['fetchGroups']} />
-				<EmptyPage
-					onAddClick={handleOnAdd}
-					emptyStateCard={{
-						heading: 'Set Up Your First Group',
-						description: 'Create a group to organize your pricing entities.',
-						buttonLabel: 'Create Group',
-						buttonAction: handleOnAdd,
-					}}
-					tutorials={GUIDES.plans.tutorials}
-					heading='Groups'
-					tags={['Groups']}
-				/>
-			</div>
-		);
-	}
+	const columns: ColumnData<Group>[] = useMemo(
+		() => [
+			{ fieldName: 'name', title: 'Name' },
+			{
+				title: 'Status',
+				render: (row) => {
+					const label = formatChips(row.status);
+					return <Chip variant={label === 'Active' ? 'success' : 'default'} label={label} />;
+				},
+			},
+			{
+				title: 'Updated at',
+				render: (row) => formatDate(row.updated_at),
+			},
+			{
+				fieldVariant: 'interactive',
+				render: (row) => (
+					<ActionButton
+						id={row.id}
+						deleteMutationFn={(id) => GroupApi.deleteGroup(id)}
+						refetchQueryKey='fetchGroups'
+						entityName='Group'
+						edit={{ onClick: () => handleEdit(row) }}
+						archive={{ enabled: row.status === ENTITY_STATUS.PUBLISHED }}
+					/>
+				),
+			},
+		],
+		[],
+	);
 
 	return (
 		<Page heading='Groups' headingCTA={<AddButton onClick={handleOnAdd} />}>
 			<GroupDrawer data={activeGroup} open={groupDrawerOpen} onOpenChange={setGroupDrawerOpen} refetchQueryKeys={['fetchGroups']} />
 			<ApiDocsContent tags={['Groups']} />
 			<div className='space-y-6'>
-				{isLoading ? (
-					<div className='flex justify-center items-center min-h-[200px]'>
-						<Loader />
-					</div>
-				) : (
-					<>
-						<GroupsTable
-							data={groupsData?.items || []}
-							onEdit={(group: Group) => {
-								setActiveGroup(group);
-								setGroupDrawerOpen(true);
-							}}
-						/>
-						<Spacer className='!h-4' />
-						<ShortPagination unit='Groups' totalItems={groupsData?.pagination.total ?? 0} />
-					</>
-				)}
+				<QueryableDataArea<Group>
+					queryConfig={{
+						filterOptions,
+						sortOptions: sortingOptions,
+						initialFilters,
+						initialSorts,
+						debounceTime: 300,
+					}}
+					dataConfig={{
+						queryKey: 'fetchGroups',
+						fetchFn: async (params) => {
+							const response = await GroupApi.getGroupsByFilter({
+								entity_type: GROUP_ENTITY_TYPE.PRICE,
+								limit: params.limit,
+								offset: params.offset,
+								filters: params.filters ?? [],
+								sort: params.sort ?? [],
+							});
+							return {
+								items: response.items as Group[],
+								pagination: response.pagination,
+							};
+						},
+						probeFetchFn: async (_params) => {
+							const response = await GroupApi.getGroupsByFilter({
+								entity_type: GROUP_ENTITY_TYPE.PRICE,
+								limit: 1,
+								offset: 0,
+								filters: [],
+								sort: [],
+							});
+							return {
+								items: response.items as Group[],
+								pagination: response.pagination,
+							};
+						},
+					}}
+					tableConfig={{
+						columns,
+						showEmptyRow: true,
+					}}
+					paginationConfig={{ unit: 'Groups' }}
+					emptyStateConfig={{
+						heading: 'Groups',
+						description: 'Create a group to organize your pricing entities.',
+						buttonLabel: 'Create Group',
+						buttonAction: handleOnAdd,
+						tags: ['Groups'],
+						tutorials: GUIDES.plans.tutorials,
+					}}
+				/>
 			</div>
 		</Page>
 	);

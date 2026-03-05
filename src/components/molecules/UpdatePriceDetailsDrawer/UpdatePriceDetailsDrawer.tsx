@@ -1,4 +1,5 @@
 import { Button, Input, Sheet, Spacer, Textarea } from '@/components/atoms';
+import SelectGroup from '@/components/organisms/PlanForm/SelectGroup';
 import { FC, useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { PriceApi } from '@/api/PriceApi';
@@ -6,6 +7,7 @@ import toast from 'react-hot-toast';
 import { refetchQueries } from '@/core/services/tanstack/ReactQueryProvider';
 import { UpdatePriceRequest } from '@/types/dto/Price';
 import { Price } from '@/models/Price';
+import { GROUP_ENTITY_TYPE } from '@/models/Group';
 
 interface UpdatePriceDetailsDrawerProps {
 	price: Price;
@@ -21,11 +23,13 @@ const UpdatePriceDetailsDrawer: FC<UpdatePriceDetailsDrawerProps> = ({ price, op
 		description: string;
 		lookup_key: string;
 		metadata: string;
+		group_id: string;
 	}>({
 		display_name: price?.display_name || '',
 		description: price?.description || '',
 		lookup_key: price?.lookup_key || '',
 		metadata: price?.metadata ? JSON.stringify(price.metadata, null, 2) : '',
+		group_id: price?.group_id || '',
 	});
 	const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
 
@@ -50,6 +54,7 @@ const UpdatePriceDetailsDrawer: FC<UpdatePriceDetailsDrawerProps> = ({ price, op
 				description: price.description || '',
 				lookup_key: price.lookup_key || '',
 				metadata: price.metadata ? JSON.stringify(price.metadata, null, 2) : '',
+				group_id: price.group_id || '',
 			});
 		}
 		setErrors({});
@@ -97,6 +102,7 @@ const UpdatePriceDetailsDrawer: FC<UpdatePriceDetailsDrawerProps> = ({ price, op
 			description: formData.description?.trim() || undefined,
 			lookup_key: formData.lookup_key?.trim() || undefined,
 			metadata: metadata,
+			group_id: formData.group_id?.trim() || undefined,
 		};
 
 		updatePrice(updateDto);
@@ -151,6 +157,14 @@ const UpdatePriceDetailsDrawer: FC<UpdatePriceDetailsDrawerProps> = ({ price, op
 					placeholder='{"key": "value"}'
 					label='Metadata (Optional)'
 					description='Additional metadata as JSON. All values must be strings.'
+				/>
+
+				<SelectGroup
+					label='Group'
+					placeholder='Select a group (optional)'
+					value={formData.group_id}
+					onChange={(group) => setFormData({ ...formData, group_id: group?.id ?? '' })}
+					entityType={GROUP_ENTITY_TYPE.PRICE}
 				/>
 
 				<Spacer className='!h-4' />

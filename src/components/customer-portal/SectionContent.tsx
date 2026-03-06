@@ -151,7 +151,7 @@ const SectionContent = ({ section }: SectionContentProps) => {
 	const analyticsParams: DashboardAnalyticsRequest = useMemo(() => {
 		const range =
 			useCustom && customStart && customEnd ? { start_time: customStart, end_time: customEnd } : calculateDateRange(selectedPreset);
-		return { window_size: WindowSize.DAY, ...range };
+		return { window_size: WindowSize.DAY, ...range, expand: ['price'] };
 	}, [selectedPreset, useCustom, customStart, customEnd]);
 
 	// ── Shared data fetches ──────────────────────────────────────────────────

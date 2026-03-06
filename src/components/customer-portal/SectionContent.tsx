@@ -61,8 +61,9 @@ interface SectionDateFilterProps {
 	usageGraphConfig: UsageGraphConfig;
 	selectedPreset: DatePreset;
 	useCustom: boolean;
-	customStart: string;
-	customEnd: string;
+	/** Effective range to show in date pickers (preset range or custom); keeps pickers in sync with preset */
+	effectiveStart: string;
+	effectiveEnd: string;
 	onPresetClick: (preset: DatePreset) => void;
 	onCustomStartChange: (val: string) => void;
 	onCustomEndChange: (val: string) => void;
@@ -72,8 +73,8 @@ const SectionDateFilter = ({
 	usageGraphConfig,
 	selectedPreset,
 	useCustom,
-	customStart,
-	customEnd,
+	effectiveStart,
+	effectiveEnd,
 	onPresetClick,
 	onCustomStartChange,
 	onCustomEndChange,
@@ -96,14 +97,14 @@ const SectionDateFilter = ({
 		{usageGraphConfig.allow_custom_date_range && (
 			<div className='flex items-center gap-2'>
 				<DatePicker
-					date={customStart ? new Date(customStart) : undefined}
+					date={effectiveStart ? new Date(effectiveStart) : undefined}
 					setDate={(d) => onCustomStartChange(d ? startOfDay(d).toISOString() : '')}
 					placeholder='Start date'
 					className='w-[130px] h-9 text-xs bg-white'
 					popoverTriggerClassName='[&_button]:h-9 [&_button]:text-xs [&_button]:rounded-md'
 				/>
 				<DatePicker
-					date={customEnd ? new Date(customEnd) : undefined}
+					date={effectiveEnd ? new Date(effectiveEnd) : undefined}
 					setDate={(d) => onCustomEndChange(d ? endOfDay(d).toISOString() : '')}
 					placeholder='End date'
 					className='w-[130px] h-9 text-xs bg-white'
@@ -152,12 +153,17 @@ const SectionContent = ({ section }: SectionContentProps) => {
 		setUseCustom(!!val);
 	}, []);
 
+	// Effective range: preset when a preset is selected, custom when user picked dates (used for analytics + date picker display)
+	const effectiveRange = useMemo(
+		() => (useCustom && customStart && customEnd ? { start_time: customStart, end_time: customEnd } : calculateDateRange(selectedPreset)),
+		[selectedPreset, useCustom, customStart, customEnd],
+	);
+
 	// Resolved analytics params — same object passed to every analytics widget
-	const analyticsParams: DashboardAnalyticsRequest = useMemo(() => {
-		const range =
-			useCustom && customStart && customEnd ? { start_time: customStart, end_time: customEnd } : calculateDateRange(selectedPreset);
-		return { window_size: WindowSize.DAY, ...range, expand: ['price'] };
-	}, [selectedPreset, useCustom, customStart, customEnd]);
+	const analyticsParams: DashboardAnalyticsRequest = useMemo(
+		() => ({ window_size: WindowSize.DAY, ...effectiveRange, expand: ['price'] }),
+		[effectiveRange],
+	);
 
 	// ── Shared data fetches ──────────────────────────────────────────────────
 	const needsSubscriptions = enabledTabs.some((t) => t.type === 'subscriptions');
@@ -196,8 +202,8 @@ const SectionContent = ({ section }: SectionContentProps) => {
 					usageGraphConfig={usageGraphTab.usage_graph}
 					selectedPreset={selectedPreset}
 					useCustom={useCustom}
-					customStart={customStart}
-					customEnd={customEnd}
+					effectiveStart={effectiveRange.start_time}
+					effectiveEnd={effectiveRange.end_time}
 					onPresetClick={handlePresetClick}
 					onCustomStartChange={handleCustomStart}
 					onCustomEndChange={handleCustomEnd}

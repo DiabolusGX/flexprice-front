@@ -1,5 +1,6 @@
-import { Button, CardHeader, Chip, Loader, Page, Spacer, NoDataCard } from '@/components/atoms';
+import { Button, CardHeader, Chip, Loader, Page, ShortPagination, Spacer, NoDataCard } from '@/components/atoms';
 import { ApiDocsContent, ColumnData, FlexpriceTable, CostSheetDrawer } from '@/components/molecules';
+import usePagination, { PAGINATION_PREFIX } from '@/hooks/usePagination';
 import { API_DOCS_TAGS } from '@/constants/apiDocsTags';
 import { DetailsCard } from '@/components/molecules';
 import { RouteNames } from '@/core/routes/Routes';
@@ -10,7 +11,7 @@ import CostSheetApi from '@/api/CostSheetApi';
 import { getPriceTypeLabel } from '@/utils/common/helper_functions';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { EyeOff, Plus, Pencil } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router';
 import { Card } from '@/components/atoms';
@@ -116,6 +117,15 @@ const CostSheetDetails = () => {
 	});
 
 	const { updateBreadcrumb } = useBreadcrumbsStore();
+	const { limit, offset } = usePagination({
+		initialLimit: 10,
+		prefix: PAGINATION_PREFIX.COST_SHEET_CHARGES,
+	});
+
+	const paginatedPrices = useMemo(() => {
+		const prices = costSheetData?.prices ?? [];
+		return prices.slice(offset, offset + limit);
+	}, [costSheetData?.prices, offset, limit]);
 
 	useEffect(() => {
 		if (costSheetData?.name) {
@@ -194,7 +204,8 @@ const CostSheetDetails = () => {
 								</Button>
 							}
 						/>
-						<FlexpriceTable columns={chargeColumns} data={costSheetData?.prices ?? []} />
+						<FlexpriceTable columns={chargeColumns} data={paginatedPrices} />
+						<ShortPagination unit='charges' totalItems={costSheetData?.prices?.length ?? 0} prefix={PAGINATION_PREFIX.COST_SHEET_CHARGES} />
 					</Card>
 				) : (
 					<NoDataCard

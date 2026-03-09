@@ -9,6 +9,7 @@ interface UsePaginationProps {
 export enum PAGINATION_PREFIX {
 	WALLET_TRANSACTIONS = 'wallet_transactions',
 	PLAN_CHARGES = 'plan_charges',
+	COST_SHEET_CHARGES = 'cost_sheet_charges',
 }
 
 const usePagination = ({ initialLimit = 10, prefix }: UsePaginationProps = {}) => {

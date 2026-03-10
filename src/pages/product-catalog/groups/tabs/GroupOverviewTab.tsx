@@ -33,7 +33,7 @@ import {
 	FilterCondition,
 } from '@/types/common/QueryBuilder';
 import { ENTITY_STATUS } from '@/models';
-import useFilterSortingWithPersistence from '@/hooks/useFilterSortingWithPersistence';
+import useFilterSorting from '@/hooks/useFilterSorting';
 import usePagination, { PAGINATION_PREFIX } from '@/hooks/usePagination';
 import { sanitizeFilterConditions, sanitizeSortConditions } from '@/types/formatters/QueryBuilder';
 
@@ -210,11 +210,10 @@ const GroupOverviewTab = () => {
 		setFilters: setFeatureFilters,
 		sorts: featureSorts,
 		setSorts: setFeatureSorts,
-	} = useFilterSortingWithPersistence({
+	} = useFilterSorting({
 		initialFilters: initialFeatureFilters,
 		initialSorts: initialFeatureSorts,
 		debounceTime: 500,
-		persistenceKey: 'groupFeatures',
 	});
 
 	const groupFilterForFeatures = useMemo(
@@ -315,11 +314,10 @@ const GroupOverviewTab = () => {
 		[],
 	);
 	const initialSorts = useMemo(() => [{ field: CHARGE_FILTER_FIELD.AMOUNT, label: 'Amount', direction: SortDirection.ASC }], []);
-	const { filters, setFilters, sorts, setSorts } = useFilterSortingWithPersistence({
+	const { filters, setFilters, sorts, setSorts } = useFilterSorting({
 		initialFilters,
 		initialSorts,
 		debounceTime: 300,
-		persistenceKey: 'groupCharges',
 	});
 
 	const {

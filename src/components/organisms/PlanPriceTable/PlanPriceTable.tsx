@@ -25,7 +25,7 @@ import { Dialog } from '@/components/ui';
 import { DeletePriceRequest } from '@/types/dto';
 import { ServerError } from '@/core/axios/types';
 import { formatDateTimeWithSecondsAndTimezone } from '@/utils/common/format_date';
-import useFilterSortingWithPersistence from '@/hooks/useFilterSortingWithPersistence';
+import useFilterSorting from '@/hooks/useFilterSorting';
 import { FilterField, FilterFieldType, FilterOperator, DataType, SortDirection, FilterCondition } from '@/types/common/QueryBuilder';
 import { sanitizeFilterConditions, sanitizeSortConditions } from '@/types/formatters/QueryBuilder';
 import usePagination, { PAGINATION_PREFIX } from '@/hooks/usePagination';
@@ -322,11 +322,10 @@ const PlanPriceTable: FC<PlanChargesTableProps> = ({ plan, onPriceUpdate }) => {
 	);
 	const initialSorts = useMemo(() => [{ field: CHARGE_FILTER_FIELD.AMOUNT, label: 'Amount', direction: SortDirection.ASC }], []);
 
-	const { filters, sorts, setFilters, setSorts } = useFilterSortingWithPersistence({
+	const { filters, sorts, setFilters, setSorts } = useFilterSorting({
 		initialFilters,
 		initialSorts,
 		debounceTime: 300,
-		persistenceKey: 'planCharges',
 	});
 
 	const {

@@ -15,28 +15,31 @@ import UsageSection from './UsageSection';
 import TimePeriodSelector from './TimePeriodSelector';
 import { CustomerPortalTimePeriod, DEFAULT_TIME_PERIOD, calculateTimeRange } from './constants';
 
+const CARD_CLASS = 'bg-white border border-[#E9E9E9] rounded-xl p-6';
+const TITLE_TO_CONTENT_GAP = 'mb-4';
+
 const OverviewSkeleton = () => (
 	<div className='space-y-6'>
 		{/* Subscriptions Skeleton */}
-		<Card className='bg-white border border-[#E9E9E9] rounded-xl p-6'>
+		<Card className={CARD_CLASS}>
 			<div className='animate-pulse space-y-4'>
-				<div className='h-5 bg-zinc-100 rounded w-1/4'></div>
+				<div className={`h-5 bg-zinc-100 rounded w-1/4 ${TITLE_TO_CONTENT_GAP}`}></div>
 				<div className='h-20 bg-zinc-100 rounded'></div>
 			</div>
 		</Card>
 
 		{/* Wallet Balance Skeleton */}
-		<Card className='bg-white border border-[#E9E9E9] rounded-xl p-6'>
+		<Card className={CARD_CLASS}>
 			<div className='animate-pulse'>
-				<div className='h-10 bg-zinc-100 rounded w-1/3 mb-6'></div>
+				<div className={`h-10 bg-zinc-100 rounded w-1/3 ${TITLE_TO_CONTENT_GAP}`}></div>
 				<div className='h-10 bg-zinc-100 rounded w-1/4'></div>
 			</div>
 		</Card>
 
 		{/* Usage Chart Skeleton */}
-		<Card className='bg-white border border-[#E9E9E9] rounded-xl p-6'>
+		<Card className={CARD_CLASS}>
 			<div className='animate-pulse'>
-				<div className='h-5 bg-zinc-100 rounded w-1/4 mb-4'></div>
+				<div className={`h-5 bg-zinc-100 rounded w-1/4 ${TITLE_TO_CONTENT_GAP}`}></div>
 				<div className='h-48 bg-zinc-100 rounded'></div>
 			</div>
 		</Card>
@@ -135,24 +138,22 @@ const OverviewTab = () => {
 		<div className='space-y-6'>
 			{/* Wallet Balance */}
 			{firstWallet && (
-				<Card className='bg-white border border-[#E9E9E9] rounded-xl p-6'>
-					<div className='flex items-center gap-3 mb-6'>
-						<div className='h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center'>
+				<Card className={CARD_CLASS}>
+					<div className={`flex items-center gap-3 ${TITLE_TO_CONTENT_GAP}`}>
+						<div className='h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0'>
 							<WalletIcon className='h-5 w-5 text-blue-600' />
 						</div>
 						<div>
 							<h3 className='text-base font-medium text-zinc-950'>{firstWallet.name || 'Wallet'}</h3>
 						</div>
 					</div>
-
-					{/* Balance */}
 					<div>
-						<span className='text-sm text-zinc-500 block mb-2'>Balance</span>
+						<span className='text-sm text-zinc-500 block mb-1.5'>Balance</span>
 						<div className='flex items-baseline gap-2'>
 							<span className='text-4xl font-semibold text-zinc-950'>{formatAmount(firstWallet.credit_balance?.toString() ?? '0')}</span>
 							<span className='text-base font-normal text-zinc-500'>credits</span>
 						</div>
-						<p className='text-sm text-zinc-500 mt-1'>
+						<p className='text-sm text-zinc-500 mt-1.5'>
 							{currencySymbol}
 							{formatAmount(firstWallet.balance?.toString() ?? '0')} value
 						</p>
@@ -164,8 +165,8 @@ const OverviewTab = () => {
 			<SubscriptionsSection subscriptions={subscriptions} />
 			{/* Usage Analytics Chart */}
 			{analyticsData && (
-				<Card className='bg-white border border-[#E9E9E9] rounded-xl p-6'>
-					<div className='flex items-center justify-between mb-4'>
+				<Card className={CARD_CLASS}>
+					<div className={`flex items-center justify-between ${TITLE_TO_CONTENT_GAP}`}>
 						<h3 className='text-base font-medium text-zinc-950'>Usage</h3>
 						<TimePeriodSelector selectedPeriod={selectedPeriod} onPeriodChange={setSelectedPeriod} />
 					</div>

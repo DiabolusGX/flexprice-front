@@ -5,6 +5,7 @@ import { CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaCh
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui';
 import { Button } from '@/components/ui/button';
+import { formatCompactNumber } from '@/utils';
 import { GetMonitoringDataResponse, EventCountPoint } from '@/types/dto';
 import { getTypographyClass } from '@/lib/typography';
 
@@ -29,19 +30,6 @@ const normalizeMonitoringData = (response: GetMonitoringDataResponse) => {
 		}));
 
 	return chartData;
-};
-
-/**
- * Format large numbers for display
- */
-const formatNumber = (value: number): string => {
-	if (value >= 1000000) {
-		return `${(value / 1000000).toFixed(1)}M`;
-	}
-	if (value >= 1000) {
-		return `${(value / 1000).toFixed(1)}K`;
-	}
-	return value.toString();
 };
 
 interface EventsMonitoringChartProps {
@@ -104,7 +92,7 @@ export const EventsMonitoringChart: React.FC<EventsMonitoringChartProps> = ({
 					width={50}
 					tickCount={6}
 					dx={-5}
-					tickFormatter={formatNumber}
+					tickFormatter={formatCompactNumber}
 				/>
 				{showTooltip && (
 					<Tooltip
@@ -169,7 +157,9 @@ export const EventsMonitoringChart: React.FC<EventsMonitoringChartProps> = ({
 												display: 'inline-block',
 											}}></span>
 										<span style={{ color: '#4b5563', fontSize: '11px' }}>Event Count</span>
-										<span style={{ fontWeight: 600, color: '#111827', marginLeft: 'auto' }}>{pointData.event_count.toLocaleString()}</span>
+										<span style={{ fontWeight: 600, color: '#111827', marginLeft: 'auto' }}>
+											{formatCompactNumber(pointData.event_count)}
+										</span>
 									</div>
 								</div>
 							);

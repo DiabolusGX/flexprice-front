@@ -56,6 +56,9 @@ import {
 	Coupons as CouponsPage,
 	CouponDetails,
 	Groups as GroupsPage,
+	GroupProfilePage,
+	GroupOverviewTab as GroupOverviewTabComponent,
+	GroupInformationTab as GroupInformationTabComponent,
 	PriceUnits as PriceUnitsPage,
 	// Usage pages
 	Events as EventsPage,
@@ -309,6 +312,25 @@ export const MainRouter = createBrowserRouter([
 					{
 						path: RouteNames.groups,
 						element: <GroupsPage />,
+					},
+					{
+						path: `${RouteNames.groups}/:id`,
+						element: <GroupProfilePage />,
+						children: [
+							{
+								path: '',
+								element: <GroupOverviewTabComponent />,
+								index: true,
+							},
+							{
+								path: 'overview',
+								element: <GroupOverviewTabComponent />,
+							},
+							{
+								path: 'information',
+								element: <GroupInformationTabComponent />,
+							},
+						],
 					},
 					{
 						path: RouteNames.priceUnits,

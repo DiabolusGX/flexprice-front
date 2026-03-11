@@ -2,6 +2,8 @@ import { AddButton, Page, ActionButton, Chip } from '@/components/atoms';
 import { ApiDocsContent, GroupDrawer } from '@/components/molecules';
 import { ColumnData } from '@/components/molecules/Table';
 import { QueryableDataArea } from '@/components/organisms';
+import { useNavigate } from 'react-router';
+import { RouteNames } from '@/core/routes/Routes';
 import { Group } from '@/models/Group';
 import { getGroupEntityTypeLabel } from '@/models/Group';
 import { ENTITY_STATUS } from '@/models';
@@ -18,6 +20,7 @@ import {
 } from '@/pages/product-catalog/groups/groupsQueryConfig';
 
 const GroupsPage = () => {
+	const navigate = useNavigate();
 	const [groupDrawerOpen, setGroupDrawerOpen] = useState(false);
 
 	const handleOnAdd = () => {
@@ -102,6 +105,7 @@ const GroupsPage = () => {
 					tableConfig={{
 						columns,
 						showEmptyRow: true,
+						onRowClick: (row) => navigate(`${RouteNames.groups}/${row.id}`),
 					}}
 					paginationConfig={{ unit: 'Groups' }}
 					emptyStateConfig={{

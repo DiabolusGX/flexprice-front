@@ -1,9 +1,10 @@
 import CustomerApi from '@/api/CustomerApi';
 import { PlanApi } from '@/api/PlanApi';
+import { GroupApi } from '@/api/GroupApi';
 import { UserApi } from '@/api';
 import { SelectOption } from '@/components/atoms/Select/SearchableSelect';
 import { Customer } from '@/models/Customer';
-import { PlanResponse } from '@/types/dto';
+import { PlanResponse, GroupResponse } from '@/types/dto';
 import { User } from '@/models/User';
 import { TypedBackendFilter } from '@/types/formatters/QueryBuilder';
 import { FilterOperator, DataType } from '@/types/common/QueryBuilder';
@@ -65,6 +66,34 @@ export const searchPlansForFilter = async (query: string): Promise<Array<SelectO
 		label: plan.name,
 		description: plan.description,
 		data: plan,
+	}));
+};
+
+/**
+ * Search groups for async filter components
+ * Returns options in the format expected by FilterAsyncSelect/FilterAsyncMultiSelect
+ */
+export const searchGroupsForFilter = async (query: string): Promise<Array<SelectOption & { data: GroupResponse }>> => {
+	const filters: TypedBackendFilter[] = [];
+	if (query && query.trim() !== '') {
+		filters.push({
+			field: 'name',
+			operator: FilterOperator.CONTAINS,
+			data_type: DataType.STRING,
+			value: { string: query.trim() },
+		});
+	}
+	const result = await GroupApi.getGroupsByFilter({
+		limit: 20,
+		offset: 0,
+		filters,
+		sort: [],
+	});
+	return result.items.map((group: GroupResponse) => ({
+		value: group.id,
+		label: group.name,
+		description: group.lookup_key,
+		data: group,
 	}));
 };
 

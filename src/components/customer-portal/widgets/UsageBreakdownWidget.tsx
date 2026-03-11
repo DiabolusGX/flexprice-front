@@ -40,9 +40,10 @@ function renderTotalUsagePortal(row: UsageAnalyticItem) {
 				: (row.unit_plural ?? row.unit)
 			: '';
 	const suffix = unitLabel ? ` ${unitLabel}` : '';
+	const formattedUsage = useDisplayValue ? formatNumber(displayNum, displayNum % 1 === 0 ? 0 : 2) : formatNumber(Number(row.total_usage));
 	return (
 		<span>
-			{useDisplayValue ? row.total_usage_display : formatNumber(Number(row.total_usage))}
+			{formattedUsage}
 			{suffix}
 		</span>
 	);

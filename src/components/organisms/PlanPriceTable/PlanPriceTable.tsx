@@ -25,12 +25,12 @@ import { Dialog } from '@/components/ui';
 import { DeletePriceRequest } from '@/types/dto';
 import { ServerError } from '@/core/axios/types';
 import { formatDateTimeWithSecondsAndTimezone } from '@/utils/common/format_date';
-import useFilterSortingWithPersistence from '@/hooks/useFilterSortingWithPersistence';
+import useFilterSorting from '@/hooks/useFilterSorting';
 import { FilterField, FilterFieldType, FilterOperator, DataType, SortDirection, FilterCondition } from '@/types/common/QueryBuilder';
-import type { TypedBackendFilter, TypedBackendSort } from '@/types/formatters/QueryBuilder';
+import { sanitizeFilterConditions, sanitizeSortConditions } from '@/types/formatters/QueryBuilder';
 import usePagination, { PAGINATION_PREFIX } from '@/hooks/usePagination';
 import { ShortPagination } from '@/components/atoms';
-import type { SearchPricesFilter, SearchPricesResponse } from '@/types/dto';
+import type { SearchPricesResponse } from '@/types/dto';
 
 // ===== FILTER FIELD NAMES (no hardcoded strings in logic) =====
 const CHARGE_FILTER_FIELD = {
@@ -50,19 +50,12 @@ interface PlanChargesTableProps {
 	onPriceUpdate?: () => void;
 }
 
-interface PriceWithStatus extends Price {
-	precomputedStatus: PRICE_STATUS;
-	statusVariant: 'info' | 'default' | 'success';
-	statusLabel: string;
-	tooltipContent: React.ReactNode;
-}
-
 interface PriceDropdownProps {
 	row: Price;
 	hasEndDate: boolean;
 	onEditPrice: (price: Price) => void;
 	onEditDetails: (price: Price) => void;
-	onTerminatePrice: (priceId: string, priceFromRow?: Price) => void;
+	onTerminatePrice: (price: Price) => void;
 }
 
 const PriceDropdown: FC<PriceDropdownProps> = ({ row, hasEndDate, onEditPrice, onEditDetails, onTerminatePrice }) => {
@@ -106,7 +99,7 @@ const PriceDropdown: FC<PriceDropdownProps> = ({ row, hasEndDate, onEditPrice, o
 						onSelect: (e: Event) => {
 							e.preventDefault();
 							setIsOpen(false);
-							onTerminatePrice(row.id, row);
+							onTerminatePrice(row);
 						},
 						disabled: hasEndDate,
 					},
@@ -215,8 +208,6 @@ const formatPriceDateTooltip = (price: Price & { start_date?: string; end_date?:
 	return <div className='flex flex-col gap-2'>{dateItems}</div>;
 };
 
-const FILTER_ANY_VALUE = '__any__';
-
 const chargeFilterOptions: FilterField[] = [
 	{
 		field: CHARGE_FILTER_FIELD.DISPLAY_NAME,
@@ -234,98 +225,11 @@ const chargeFilterOptions: FilterField[] = [
 	},
 ];
 
-function getFilterValue(filters: TypedBackendFilter[], field: string): string | undefined {
-	const f = filters.find((x) => x.field === field);
-	const v = f?.value?.string?.trim();
-	return v && v !== FILTER_ANY_VALUE ? v : undefined;
-}
-
-/** Build search API filters from FilterCondition[] (no hardcoded values; amount parsed from valueString when dataType is NUMBER) */
-function buildSearchFiltersFromConditions(conditions: FilterCondition[]): SearchPricesFilter[] {
-	const out: SearchPricesFilter[] = [];
-	for (const c of conditions) {
-		if (!c.field?.trim() || !c.operator || !c.dataType) continue;
-		if (c.dataType === DataType.NUMBER) {
-			const num =
-				typeof c.valueNumber === 'number' && Number.isFinite(c.valueNumber)
-					? c.valueNumber
-					: c.valueString != null && c.valueString.trim() !== ''
-						? parseFloat(c.valueString.trim())
-						: NaN;
-			if (Number.isNaN(num)) continue;
-			out.push({
-				field: c.field,
-				operator: c.operator,
-				data_type: c.dataType,
-				value: { number: num },
-			});
-			continue;
-		}
-		const stringVal = c.valueString?.trim();
-		if (stringVal === '' || stringVal === FILTER_ANY_VALUE) continue;
-		out.push({
-			field: c.field,
-			operator: c.operator,
-			data_type: c.dataType,
-			value: { string: stringVal },
-		});
-	}
-	return out;
-}
-
-function applyPriceFilterAndSort(
-	prices: PriceWithStatus[],
-	sanitizedFilters: TypedBackendFilter[],
-	sanitizedSorts: TypedBackendSort[],
-): PriceWithStatus[] {
-	const displayNameFilterVal = getFilterValue(sanitizedFilters, CHARGE_FILTER_FIELD.DISPLAY_NAME);
-	const displayNameFilterOp = sanitizedFilters.find((x) => x.field === CHARGE_FILTER_FIELD.DISPLAY_NAME)?.operator;
-	const amountFilter = sanitizedFilters.find((x) => x.field === CHARGE_FILTER_FIELD.AMOUNT);
-	const amountNum = amountFilter?.value?.number;
-	const amountOp = amountFilter?.operator;
-
-	let items = prices.filter((price) => {
-		if (displayNameFilterVal && displayNameFilterOp) {
-			const dn = (price.display_name ?? '').toLowerCase();
-			const search = displayNameFilterVal.toLowerCase();
-			if (displayNameFilterOp === FilterOperator.EQUAL && dn !== search) return false;
-			if (displayNameFilterOp === FilterOperator.CONTAINS && !dn.includes(search)) return false;
-		}
-		if (amountNum != null && amountOp) {
-			const pAmount = parseFloat(price.amount as string) || 0;
-			if (amountOp === FilterOperator.EQUAL && pAmount !== amountNum) return false;
-			if (amountOp === FilterOperator.GREATER_THAN && pAmount <= amountNum) return false;
-			if (amountOp === FilterOperator.LESS_THAN && pAmount >= amountNum) return false;
-		}
-		return true;
-	});
-
-	const sort = sanitizedSorts[0];
-	if (sort) {
-		const dir = sort.direction === SortDirection.DESC ? -1 : 1;
-		items = [...items].sort((a, b) => {
-			let cmp = 0;
-			switch (sort.field) {
-				case CHARGE_FILTER_FIELD.CHARGE_TYPE:
-					cmp = (a.type || '').localeCompare(b.type || '');
-					break;
-				case CHARGE_FILTER_FIELD.CURRENCY:
-					cmp = (a.currency || '').localeCompare(b.currency || '');
-					break;
-				case CHARGE_FILTER_FIELD.BILLING_PERIOD:
-					cmp = (a.billing_period || '').localeCompare(b.billing_period || '');
-					break;
-				case CHARGE_FILTER_FIELD.AMOUNT:
-					cmp = (parseFloat(a.amount as string) || 0) - (parseFloat(b.amount as string) || 0);
-					break;
-				default:
-					break;
-			}
-			return cmp * dir;
-		});
-	}
-	return items;
-}
+const chargeSortOptions = [
+	{ field: CHARGE_FILTER_FIELD.DISPLAY_NAME, label: 'Display name', direction: SortDirection.ASC as const },
+	{ field: CHARGE_FILTER_FIELD.AMOUNT, label: 'Amount', direction: SortDirection.ASC as const },
+	{ field: CHARGE_FILTER_FIELD.BILLING_PERIOD, label: 'Billing period', direction: SortDirection.ASC as const },
+];
 
 const PlanPriceTable: FC<PlanChargesTableProps> = ({ plan, onPriceUpdate }) => {
 	const navigate = useNavigate();
@@ -365,15 +269,10 @@ const PlanPriceTable: FC<PlanChargesTableProps> = ({ plan, onPriceUpdate }) => {
 		onPriceUpdate?.();
 	}, [onPriceUpdate]);
 
-	const handleTerminatePrice = useCallback(
-		(priceId: string, priceFromRow?: Price) => {
-			const price = priceFromRow ?? plan.prices?.find((p) => p.id === priceId);
-			if (!price) return;
-			setSelectedPriceForTermination(price);
-			setShowTerminateModal(true);
-		},
-		[plan.prices],
-	);
+	const handleTerminatePrice = useCallback((price: Price) => {
+		setSelectedPriceForTermination(price);
+		setShowTerminateModal(true);
+	}, []);
 
 	const handleTerminateConfirm = useCallback(
 		async (endDate: string | undefined) => {
@@ -405,37 +304,7 @@ const PlanPriceTable: FC<PlanChargesTableProps> = ({ plan, onPriceUpdate }) => {
 		setSelectedPriceForTermination(null);
 	}, []);
 
-	// ===== PROCESSED PRICES WITH PRECOMPUTED STATUS =====
-	const processedPrices = useMemo<PriceWithStatus[]>(() => {
-		if (!plan.prices || plan.prices.length === 0) return [];
-
-		// Precompute status and related data for each price
-		const pricesWithStatus: PriceWithStatus[] = plan.prices.map((price) => {
-			const status = getPriceStatus(price);
-			const variant = getStatusChipVariant(status);
-			const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
-			const tooltipContent = formatPriceDateTooltip(price);
-
-			return {
-				...price,
-				precomputedStatus: status,
-				statusVariant: variant,
-				statusLabel,
-				tooltipContent,
-			};
-		});
-
-		// Sort: active first, then upcoming, then inactive
-		const statusOrder: Record<PRICE_STATUS, number> = {
-			[PRICE_STATUS.ACTIVE]: 0,
-			[PRICE_STATUS.UPCOMING]: 1,
-			[PRICE_STATUS.INACTIVE]: 2,
-		};
-
-		return pricesWithStatus.sort((a, b) => {
-			return statusOrder[a.precomputedStatus] - statusOrder[b.precomputedStatus];
-		});
-	}, [plan.prices]);
+	const hasPrices = (plan.prices?.length ?? 0) > 0;
 
 	// ===== FILTER & SORT =====
 	const initialFilters = useMemo<FilterCondition[]>(
@@ -453,11 +322,10 @@ const PlanPriceTable: FC<PlanChargesTableProps> = ({ plan, onPriceUpdate }) => {
 	);
 	const initialSorts = useMemo(() => [{ field: CHARGE_FILTER_FIELD.AMOUNT, label: 'Amount', direction: SortDirection.ASC }], []);
 
-	const { filters, sorts, setFilters, setSorts, sanitizedFilters, sanitizedSorts } = useFilterSortingWithPersistence({
+	const { filters, sorts, setFilters, setSorts } = useFilterSorting({
 		initialFilters,
 		initialSorts,
 		debounceTime: 300,
-		persistenceKey: 'planCharges',
 	});
 
 	const {
@@ -470,106 +338,71 @@ const PlanPriceTable: FC<PlanChargesTableProps> = ({ plan, onPriceUpdate }) => {
 		prefix: PAGINATION_PREFIX.PLAN_CHARGES,
 	});
 
-	const searchFilters = useMemo(() => buildSearchFiltersFromConditions(filters), [filters]);
+	const searchFilters = useMemo(() => sanitizeFilterConditions(filters), [filters]);
+	const searchSorts = useMemo(() => sanitizeSortConditions(sorts), [sorts]);
 
 	// Stable signature so we only reset page when filter values change, not when resetPage reference changes (e.g. after setPage(2))
 	const searchFiltersSignature = useMemo(() => JSON.stringify(searchFilters), [searchFilters]);
 
-	const {
-		data: searchData,
-		isLoading: isSearchLoading,
-		isError: isSearchError,
-	} = useQuery<SearchPricesResponse>({
-		queryKey: ['planChargesSearch', plan.id, searchFilters, page, limit],
+	const { data: searchData, isLoading: isSearchLoading } = useQuery<SearchPricesResponse>({
+		queryKey: ['planChargesSearch', plan.id, searchFilters, searchSorts, page, limit],
 		queryFn: () =>
 			PriceApi.searchPrices({
 				entity_ids: [plan.id],
 				entity_type: 'PLAN',
 				filters: searchFilters.length > 0 ? searchFilters : undefined,
+				sorts: searchSorts.length > 0 ? searchSorts : undefined,
 				allow_expired_prices: true,
 				limit,
 				offset,
 			}),
-		enabled: !!plan.id,
+		enabled: !!plan.id && hasPrices,
 	});
 
-	// Keep latest resetPage in a ref so the effect only runs when filter content changes, not when callback identity changes (e.g. after setPage(2))
 	const resetPageRef = React.useRef(resetPage);
 	resetPageRef.current = resetPage;
 	useEffect(() => {
 		resetPageRef.current();
 	}, [searchFiltersSignature]);
 
-	const tablePricesFromSearch = useMemo<PriceWithStatus[]>(() => {
-		if (!searchData?.items?.length) return [];
-		return searchData.items.map((price: Price) => {
-			const status = getPriceStatus(price);
-			const variant = getStatusChipVariant(status);
-			const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
-			const tooltipContent = formatPriceDateTooltip(price);
-			return {
-				...price,
-				precomputedStatus: status,
-				statusVariant: variant,
-				statusLabel,
-				tooltipContent,
-			};
-		});
-	}, [searchData?.items]);
-
-	const filteredAndSortedPrices = useMemo(() => {
-		// Use search results only when API succeeded and returned at least one item; otherwise filter plan.prices client-side
-		// so display_name/amount filters still show matches when the API returns empty (e.g. backend filter not supported)
-		if (searchData != null && !isSearchError && (searchData.items?.length ?? 0) > 0) {
-			return tablePricesFromSearch;
-		}
-		return applyPriceFilterAndSort(processedPrices, sanitizedFilters, sanitizedSorts);
-	}, [searchData, isSearchError, tablePricesFromSearch, processedPrices, sanitizedFilters, sanitizedSorts]);
-
+	// Use search API response directly (no client-side filter/sort)
+	const tableItems = searchData?.items ?? [];
 	const totalFromSearch = searchData?.pagination?.total ?? 0;
-	const useSearchResults = searchData != null && !isSearchError && (searchData.items?.length ?? 0) > 0;
-	// When API doesn't return total (e.g. on page 2), use a minimum so pagination still shows and user can go back
-	const totalItems = useSearchResults
-		? totalFromSearch || Math.max(offset + (searchData?.items?.length ?? 0), limit * page)
-		: filteredAndSortedPrices.length;
+	const totalItems = totalFromSearch || Math.max(offset + tableItems.length, limit * page);
 
 	// ===== TABLE COLUMNS =====
-	const chargeColumns: ColumnData<PriceWithStatus>[] = [
+	const chargeColumns: ColumnData<Price>[] = [
 		{
 			title: 'Display Name',
-			render(rowData) {
-				return <span>{rowData.display_name ?? '--'}</span>;
-			},
+			render: (row) => <span>{row.display_name ?? '--'}</span>,
 		},
 		{
 			title: 'Charge Type',
-			render: (row) => {
-				return <span>{getPriceTypeLabel(row.type)}</span>;
-			},
+			render: (row) => <span>{getPriceTypeLabel(row.type)}</span>,
 		},
 		{
 			title: 'Billing Timing',
-			render(rowData) {
-				return <span>{formatInvoiceCadence(rowData.invoice_cadence as string)}</span>;
-			},
+			render: (row) => <span>{formatInvoiceCadence(row.invoice_cadence as string)}</span>,
 		},
 		{
 			title: 'Billing Period',
-			render(rowData) {
-				return <span>{formatBillingPeriod(rowData.billing_period as string)}</span>;
-			},
+			render: (row) => <span>{formatBillingPeriod(row.billing_period as string)}</span>,
 		},
 		{
 			title: 'Status',
-			render(rowData) {
+			render: (row) => {
+				const status = getPriceStatus(row);
+				const variant = getStatusChipVariant(status);
+				const label = status.charAt(0).toUpperCase() + status.slice(1);
+				const tooltipContent = formatPriceDateTooltip(row);
 				return (
 					<Tooltip
-						content={rowData.tooltipContent}
+						content={tooltipContent}
 						delayDuration={0}
 						sideOffset={5}
 						className='bg-white border border-gray-200 shadow-lg text-sm text-gray-900 px-4 py-3 rounded-[6px] max-w-[320px]'>
 						<span>
-							<Chip label={rowData.statusLabel} variant={rowData.statusVariant} />
+							<Chip label={label} variant={variant} />
 						</span>
 					</Tooltip>
 				);
@@ -577,10 +410,8 @@ const PlanPriceTable: FC<PlanChargesTableProps> = ({ plan, onPriceUpdate }) => {
 		},
 		{
 			title: 'Value',
-			render(rowData) {
-				// Pass pricing_unit from PriceResponse if available
-				// Type assertion needed since Plan.prices is typed as Price[] but runtime includes pricing_unit
-				const priceWithPricingUnit = rowData as Price & { pricing_unit?: PriceUnit };
+			render: (row) => {
+				const priceWithPricingUnit = row as Price & { pricing_unit?: PriceUnit };
 				return <ChargeValueCell data={priceWithPricingUnit} />;
 			},
 		},
@@ -588,7 +419,7 @@ const PlanPriceTable: FC<PlanChargesTableProps> = ({ plan, onPriceUpdate }) => {
 			fieldVariant: 'interactive',
 			width: '30px',
 			hideOnEmpty: true,
-			render(row) {
+			render: (row) => {
 				const hasEndDate = !!(row.end_date && row.end_date.trim() !== '');
 				return (
 					<PriceDropdown
@@ -641,7 +472,7 @@ const PlanPriceTable: FC<PlanChargesTableProps> = ({ plan, onPriceUpdate }) => {
 			)}
 
 			{/* Charges Table */}
-			{processedPrices.length > 0 ? (
+			{hasPrices ? (
 				<Card variant='notched'>
 					<CardHeader
 						title='Charges'
@@ -656,7 +487,7 @@ const PlanPriceTable: FC<PlanChargesTableProps> = ({ plan, onPriceUpdate }) => {
 							filterOptions={chargeFilterOptions}
 							filters={filters}
 							onFilterChange={setFilters}
-							sortOptions={[]}
+							sortOptions={chargeSortOptions}
 							selectedSorts={sorts}
 							onSortChange={setSorts}
 							debounceTime={300}
@@ -668,8 +499,8 @@ const PlanPriceTable: FC<PlanChargesTableProps> = ({ plan, onPriceUpdate }) => {
 						</div>
 					) : (
 						<>
-							<FlexpriceTable columns={chargeColumns} data={filteredAndSortedPrices} />
-							{useSearchResults && (totalItems > 0 || page > 1) && (
+							<FlexpriceTable showEmptyRow columns={chargeColumns} data={tableItems} />
+							{(totalItems > 0 || page > 1) && (
 								<ShortPagination unit='Charges' totalItems={totalItems} pageSize={limit} prefix={PAGINATION_PREFIX.PLAN_CHARGES} />
 							)}
 						</>

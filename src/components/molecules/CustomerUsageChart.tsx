@@ -3,6 +3,7 @@ import { CartesianGrid, Line, LineChart, XAxis, YAxis, Tooltip, Legend, Responsi
 import { useState } from 'react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui';
+import { formatCompactNumber } from '@/utils';
 import { GetUsageAnalyticsResponse } from '@/types/dto';
 import { UsageAnalyticItem } from '@/models/Analytics';
 
@@ -297,10 +298,10 @@ export const CustomerUsageChart: React.FC<CustomerUsageChartProps> = ({ data, ti
 									tickLine={false}
 									axisLine={false}
 									tick={{ fill: '#9ca3af', fontSize: 11 }}
-									width={40}
+									width={48}
 									tickCount={5}
 									dx={-5}
-									tickFormatter={(value) => value.toLocaleString()}
+									tickFormatter={(value) => formatCompactNumber(value)}
 								/>
 								<Tooltip
 									cursor={{ stroke: primaryColor ? `${primaryColor}66` : 'rgba(99,102,241,0.4)', strokeWidth: 1, strokeDasharray: '3 3' }}

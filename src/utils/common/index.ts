@@ -1,4 +1,4 @@
-export { default as formatNumber } from './format_number';
+export { default as formatNumber, formatCompactNumber } from './format_number';
 export {
 	getCurrencySymbol,
 	getCurrencyName,

@@ -1,5 +1,5 @@
 import { AddButton, Page, ActionButton, Chip } from '@/components/atoms';
-import { ApiDocsContent, FeatureDrawer } from '@/components/molecules';
+import { ApiDocsContent, FeatureDrawer, RedirectCell } from '@/components/molecules';
 import { ColumnData } from '@/components/molecules/Table';
 import { QueryableDataArea } from '@/components/organisms';
 import { RouteNames } from '@/core/routes/Routes';
@@ -23,6 +23,7 @@ import { toSentenceCase } from '@/utils/common/helper_functions';
 import formatChips from '@/utils/common/format_chips';
 import formatDate from '@/utils/common/format_date';
 import { getFeatureIcon } from '@/components/atoms/SelectFeature/SelectFeature';
+import { searchGroupsForFilter } from '@/utils/filterSearchHelpers';
 
 const sortingOptions: SortOption[] = [
 	{
@@ -79,6 +80,16 @@ const filterOptions: FilterField[] = [
 			{ value: FEATURE_TYPE.BOOLEAN, label: 'Boolean' },
 			{ value: FEATURE_TYPE.STATIC, label: 'Static' },
 		],
+	},
+	{
+		field: 'group_id',
+		label: 'Group',
+		fieldType: FilterFieldType.ASYNC_MULTI_SELECT,
+		operators: [FilterOperator.IN, FilterOperator.NOT_IN],
+		dataType: DataType.ARRAY,
+		asyncConfig: {
+			searchFn: searchGroupsForFilter,
+		},
 	},
 ];
 
@@ -138,6 +149,17 @@ const FeaturesPage = () => {
 				fieldName: 'name',
 				title: 'Feature Name',
 			},
+			{
+				title: 'Group',
+				render: (row) =>
+					row?.group?.id ? <RedirectCell redirectUrl={`${RouteNames.groups}/${row.group.id}`}>{row.group.name}</RedirectCell> : '—',
+			},
+			// {
+			// 	title: 'Customer',
+			// 	render: (row) => (
+			// 		<RedirectCell redirectUrl={`${RouteNames.customers}/${row.customer_id}`}>{row.customer?.name || row.customer_id}</RedirectCell>
+			// 	),
+			// },
 			{
 				title: 'Type',
 				render(row) {

@@ -16,6 +16,7 @@ import {
 	PriceUnit,
 } from '@/models';
 import { QueryFilter, TimeRangeFilter } from './base';
+import type { TypedBackendFilter, TypedBackendSort } from '@/types/formatters/QueryBuilder';
 
 export interface CreateBulkPriceRequest {
 	items: CreatePriceRequest[];
@@ -25,18 +26,15 @@ export interface GetAllPricesResponse extends Pagination {
 	items: PriceResponse[];
 }
 
-/** Filter item for POST /prices/search request body */
-export interface SearchPricesFilter {
-	field: string;
-	operator: string;
-	data_type: string;
-	value: { string?: string; number?: number; date?: string; array?: string[] };
-}
+/** Backend filter format for price search API (matches TypedBackendFilter). */
+export type SearchPricesFilter = TypedBackendFilter;
 
 export interface SearchPricesRequest {
-	entity_ids: string[];
-	entity_type: string;
-	filters?: SearchPricesFilter[];
+	/** Optional: scope by entity (e.g. plan). When omitted, scope via filters (e.g. group_id eq). */
+	entity_ids?: string[];
+	entity_type?: string;
+	filters?: TypedBackendFilter[];
+	sorts?: TypedBackendSort[];
 	allow_expired_prices?: boolean;
 	limit?: number;
 	offset?: number;

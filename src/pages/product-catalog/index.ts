@@ -29,6 +29,9 @@ export { default as PlanInformationTab } from './plans/tabs/PlanInformationTab';
 
 // Groups
 export { default as Groups } from './groups/Groups';
+export { default as GroupProfilePage } from './groups/GroupProfilePage';
+export { default as GroupOverviewTab } from './groups/tabs/GroupOverviewTab';
+export { default as GroupInformationTab } from './groups/tabs/GroupInformationTab';
 
 // Price Units
 export { PriceUnits } from './price-units';

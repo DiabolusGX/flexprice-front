@@ -84,8 +84,3 @@ export interface CreateBulkEntitlementRequest {
 export interface CreateBulkEntitlementResponse {
 	items: EntitlementResponse[];
 }
-
-export interface ListEntitlementsResponse {
-	items: EntitlementResponse[];
-	pagination: Pagination;
-}

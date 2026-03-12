@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { PlanPriceTable } from '@/components/organisms';
@@ -21,12 +22,17 @@ const PlanOverviewTab = () => {
 		enabled: !!planId,
 	});
 
+	useEffect(() => {
+		if (isPlanError) {
+			toast.error('Error loading plan data');
+		}
+	}, [isPlanError]);
+
 	if (isPlanLoading) {
 		return <Loader />;
 	}
 
 	if (isPlanError || !planData) {
-		toast.error('Error loading plan data');
 		return null;
 	}
 

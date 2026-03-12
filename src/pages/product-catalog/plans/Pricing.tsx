@@ -178,40 +178,74 @@ const PricingPage = () => {
 		queryFn: fetchPlans,
 	});
 
-	// Fetch all prices for all plans
-	const { data: allPricesData, isLoading: isLoadingPrices } = useQuery({
+	const PAGE_SIZE = 500;
+
+	// Fetch all prices for all plans (paginated until no more pages)
+	const {
+		data: allPricesData,
+		isLoading: isLoadingPrices,
+		isError: isErrorPrices,
+	} = useQuery({
 		queryKey: ['fetchAllPricesForPlans', plansData?.items?.map((p) => p.id)],
 		queryFn: async () => {
 			if (!plansData?.items || plansData.items.length === 0) return { items: [] };
 
 			const planIds = plansData.items.map((p) => p.id);
-			return await PriceApi.searchPrices({
-				entity_type: PRICE_ENTITY_TYPE.PLAN,
-				entity_ids: planIds,
-				limit: 1000, // Get all prices
-			});
+			const items: PriceResponse[] = [];
+			let offset = 0;
+
+			while (true) {
+				const response = await PriceApi.searchPrices({
+					entity_type: PRICE_ENTITY_TYPE.PLAN,
+					entity_ids: planIds,
+					limit: PAGE_SIZE,
+					offset,
+				});
+				items.push(...response.items);
+				if (response.items.length < PAGE_SIZE) break;
+				const total = response.pagination?.total;
+				if (total != null && offset + response.items.length >= total) break;
+				offset += PAGE_SIZE;
+			}
+			return { items };
 		},
 		enabled: !!plansData?.items && plansData.items.length > 0,
 	});
 
-	// Fetch all entitlements for all plans
-	const { data: allEntitlementsData, isLoading: isLoadingEntitlements } = useQuery({
+	// Fetch all entitlements for all plans (paginated until no more pages)
+	const {
+		data: allEntitlementsData,
+		isLoading: isLoadingEntitlements,
+		isError: isErrorEntitlements,
+	} = useQuery({
 		queryKey: ['fetchAllEntitlementsForPlans', plansData?.items?.map((p) => p.id)],
 		queryFn: async () => {
 			if (!plansData?.items || plansData.items.length === 0) return { items: [] };
 
 			const planIds = plansData.items.map((p) => p.id);
-			return await EntitlementApi.search({
-				entity_type: ENTITLEMENT_ENTITY_TYPE.PLAN,
-				entity_ids: planIds,
-				limit: 1000, // Get all entitlements
-			});
+			const items: EntitlementResponse[] = [];
+			let offset = 0;
+
+			while (true) {
+				const response = await EntitlementApi.search({
+					entity_type: ENTITLEMENT_ENTITY_TYPE.PLAN,
+					entity_ids: planIds,
+					limit: PAGE_SIZE,
+					offset,
+				});
+				items.push(...response.items);
+				if (response.items.length < PAGE_SIZE) break;
+				const total = response.pagination?.total;
+				if (total != null && offset + response.items.length >= total) break;
+				offset += PAGE_SIZE;
+			}
+			return { items };
 		},
 		enabled: !!plansData?.items && plansData.items.length > 0,
 	});
 
 	const isLoading = isLoadingPlans || isLoadingPrices || isLoadingEntitlements;
-	const isError = isErrorPlans;
+	const isError = isErrorPlans || isErrorPrices || isErrorEntitlements;
 
 	// Create a map of plan IDs to their prices and entitlements
 	const planDataMap = useMemo(() => {

@@ -62,7 +62,7 @@ function MembersSection() {
 	const isValidEmail = (value: string) => /^\S+@\S+\.\S+$/.test(value);
 
 	const createUser = useMutation({
-		mutationFn: (payload: { type: 'user'; email: string }) => UserApi.createTenantUser(payload),
+		mutationFn: (payload: { type: 'user'; email: string }) => UserApi.addUserToTenant(payload),
 		onSuccess: (res, variables) => {
 			setAddOpen(false);
 			setAddError(null);
@@ -81,6 +81,7 @@ function MembersSection() {
 	});
 
 	const handleAddUser = () => {
+		if (createUser.isPending) return;
 		const trimmed = email.trim();
 		setAddError(null);
 		if (!trimmed) {
@@ -88,8 +89,8 @@ function MembersSection() {
 			return;
 		}
 		if (!isValidEmail(trimmed)) {
-			setAddError('Please enter a valid email address');
 			toast.error('Please enter a valid email address');
+			setAddError('Please enter a valid email address');
 			return;
 		}
 		createUser.mutate({ type: 'user', email: trimmed });

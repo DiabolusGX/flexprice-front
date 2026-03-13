@@ -91,7 +91,7 @@ export class UserApi {
 	 * Add a user to the tenant. Body: { type: 'user', email }.
 	 * Returns one-time password (view once only, not stored).
 	 */
-	public static async createTenantUser(data: CreateTenantUserRequest): Promise<CreateTenantUserResponse> {
+	public static async addUserToTenant(data: CreateTenantUserRequest): Promise<CreateTenantUserResponse> {
 		return await AxiosClient.post<CreateTenantUserResponse, CreateTenantUserRequest>(this.v1UsersUrl, data);
 	}
 

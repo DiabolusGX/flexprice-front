@@ -66,6 +66,7 @@ export interface GetSubscriptionDetailsPayload {
 	subscription_id: string;
 	period_end?: string;
 	period_start?: string;
+	hide_zero_charges_line_items?: boolean;
 }
 
 export interface GetSubscriptionPreviewResponse {

@@ -9,7 +9,7 @@ import { useBreadcrumbsStore } from '@/store/useBreadcrumbsStore';
 import { CustomerApi, SubscriptionApi, TaxApi } from '@/api';
 import { formatDateShort, getCurrencySymbol } from '@/utils/common/helper_functions';
 import { useQuery } from '@tanstack/react-query';
-import { FC, useEffect } from 'react';
+import { FC, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useParams, Link } from 'react-router';
 import { INVOICE_TYPE } from '@/models/Invoice';
@@ -74,17 +74,25 @@ const CustomerSubscriptionDetailsPage: FC = () => {
 		enabled: !!subscriptionDetails?.invoicing_customer_id && subscriptionDetails.invoicing_customer_id !== subscriptionDetails?.customer_id,
 	});
 
+	const [showZeroCharges, setShowZeroCharges] = useState(false);
+
 	const {
 		data,
 		isLoading: isPreviewLoading,
 		isError,
 		refetch,
 	} = useQuery({
-		queryKey: ['subscriptionInvoices', subscription_id, subscriptionDetails?.current_period_start, subscriptionDetails?.current_period_end],
+		queryKey: [
+			'subscriptionInvoices',
+			subscription_id,
+			subscriptionDetails?.current_period_start,
+			subscriptionDetails?.current_period_end,
+			showZeroCharges,
+		],
 		queryFn: async () => {
-			// Pass period bounds when available so backend can scope preview (may reduce work)
 			return await SubscriptionApi.getSubscriptionInvoicesPreview({
 				subscription_id: subscription_id!,
+				hide_zero_charges_line_items: !showZeroCharges,
 			});
 		},
 		enabled:
@@ -388,6 +396,8 @@ const CustomerSubscriptionDetailsPage: FC = () => {
 								title='Upcoming Invoices'
 								subtitle={`This is a preview of the invoice that will be billed on ${formatDateShort(subscriptionDetails?.current_period_end ?? '')}. It may change if subscription is updated.`}
 								data={data?.line_items ?? []}
+								showZeroCharges={showZeroCharges}
+								onShowZeroChargesChange={setShowZeroCharges}
 							/>
 						) : (
 							<>

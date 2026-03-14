@@ -58,6 +58,7 @@ export interface GetInvoicePreviewPayload {
 	period_end: string;
 	period_start: string;
 	subscription_id: string;
+	hide_zero_charges_line_items?: boolean;
 }
 
 // InvoiceCoupon represents a coupon to be applied at the invoice level

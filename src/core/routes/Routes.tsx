@@ -215,6 +215,10 @@ export const MainRouter = createBrowserRouter([
 		path: RouteNames.customerPortal,
 		element: <CustomerPortalWrapper />,
 	},
+	{
+		path: RouteNames.onboarding,
+		element: <OnboardingTenant />,
+	},
 	// private routes
 	{
 		path: RouteNames.home,
@@ -548,10 +552,6 @@ export const MainRouter = createBrowserRouter([
 						element: <TaskRunsPage />,
 					},
 				],
-			},
-			{
-				path: RouteNames.onboarding,
-				element: <OnboardingTenant />,
 			},
 			{
 				path: RouteNames.settings,

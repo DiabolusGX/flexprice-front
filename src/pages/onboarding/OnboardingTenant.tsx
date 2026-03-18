@@ -27,6 +27,9 @@ const isValidUrl = (s: string): boolean => {
 	}
 };
 
+/** Banned substrings for organization names; extend as needed. */
+const BANNED_ORG_NAME_WORDS = ['test', 'demo', 'flexprice'];
+
 const teamSizeOptions: SelectOption[] = [
 	{ value: '1-10', label: '1-10' },
 	{ value: '11-20', label: '11-20' },
@@ -148,11 +151,17 @@ const OnboardingTenant = () => {
 		const trimmedOrgName = orgName.trim();
 		if (!trimmedOrgName) {
 			next.orgName = 'Organization name is required';
-		} else if (trimmedOrgName.toLowerCase() === 'flexprice') {
-			next.orgName = "Oops! That's us. Please enter your organization name instead.";
-			toast("That's us - enter your organization name.", { icon: '😅' });
-		} else if (trimmedOrgName.toLowerCase().includes('test')) {
-			next.orgName = 'Organization name cannot include the word “test”. Please choose another name.';
+		} else {
+			const lowerName = trimmedOrgName.toLowerCase();
+			if (lowerName === 'flexprice') {
+				next.orgName = "Oops! That's us. Please enter your organization name instead.";
+				toast("That's us, please enter your organization name.", { icon: '😅' });
+			} else {
+				const bannedMatch = BANNED_ORG_NAME_WORDS.find((word) => lowerName.includes(word.toLowerCase()));
+				if (bannedMatch) {
+					next.orgName = `Organization name cannot include the word “${bannedMatch}”. Please choose another name.`;
+				}
+			}
 		}
 		if (!isValidReferral) next.referralSource = 'Please select how you found us';
 		const trimmedOrgUrl = orgUrl.trim();

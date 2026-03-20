@@ -223,6 +223,10 @@ export const MainRouter = createBrowserRouter([
 		element: <CustomerPortalWrapper />,
 	},
 	{
+		path: RouteNames.checkout,
+		element: <CheckoutPage />,
+	},
+	{
 		path: RouteNames.onboarding,
 		element: <OnboardingTenant />,
 	},

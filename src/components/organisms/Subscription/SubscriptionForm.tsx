@@ -33,6 +33,7 @@ import PhaseList from './PhaseList';
 import { SubscriptionPhaseCreateRequest, EntitlementOverrideRequest } from '@/types/dto/Subscription';
 import SubscriptionPriceTable from './SubscriptionPriceTable';
 import AddSubscriptionChargeDialog from './AddSubscriptionChargeDialog';
+import { CustomerSearchSelect } from '@/components/molecules/Customer';
 import { usePriceOverrides } from '@/hooks/usePriceOverrides';
 import { Coupon } from '@/models/Coupon';
 import { InternalCreditGrantRequest, creditGrantToInternal } from '@/types/dto/CreditGrant';
@@ -132,6 +133,14 @@ const SubscriptionForm = ({
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []); // Only run once on mount
+
+	// Initialize invoicing customer toggle when editing a subscription that already has invoicingCustomerId set
+	useEffect(() => {
+		if (state.invoicingCustomerId) {
+			setShowInvoicingCustomer(true);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []); // Only on mount
 
 	// Sync price overrides with state (hook -> state)
 	// Only sync after initialization to avoid overwriting state on mount
@@ -268,6 +277,8 @@ const SubscriptionForm = ({
 	const [editedPlanGrantIds, setEditedPlanGrantIds] = useState<Set<string>>(new Set());
 	// Add subscription charge dialog open state (single-phase only)
 	const [isAddChargeDialogOpen, setAddChargeDialogOpen] = useState(false);
+	// Toggle: show override invoicing customer selector
+	const [showInvoicingCustomer, setShowInvoicingCustomer] = useState<boolean>(false);
 	// When set, dialog is in edit mode for this added line item (tempId)
 	const [editingAddedChargeTempId, setEditingAddedChargeTempId] = useState<string | null>(null);
 
@@ -818,6 +829,44 @@ const SubscriptionForm = ({
 						disabled={isDisabled || isLoadingPlanDetails}
 						placeholder='Select payment terms'
 					/>
+				</div>
+			)}
+
+			{/* Override Invoicing Customer */}
+			{state.selectedPlan && !isLoadingPlanDetails && (
+				<div className='mt-6 pt-6 border-t border-gray-200'>
+					<div className='flex items-center justify-between'>
+						<Label label='Override Invoicing Customer' />
+						<Switch
+							checked={showInvoicingCustomer}
+							onCheckedChange={(checked) => {
+								setShowInvoicingCustomer(checked);
+								if (!checked) {
+									setState((prev) => ({ ...prev, invoicingCustomerId: undefined }));
+								}
+							}}
+							disabled={isDisabled}
+						/>
+					</div>
+					{showInvoicingCustomer && (
+						<div className='mt-4'>
+							<CustomerSearchSelect
+								value={undefined}
+								excludeId={state.customerId}
+								onChange={(customer) => {
+									setState((prev) => ({
+										...prev,
+										invoicingCustomerId: customer?.id || undefined,
+									}));
+								}}
+								display={{
+									label: 'Invoicing Customer',
+									placeholder: 'Select invoicing customer',
+								}}
+								searchPlaceholder='Search for invoicing customer...'
+							/>
+						</div>
+					)}
 				</div>
 			)}
 

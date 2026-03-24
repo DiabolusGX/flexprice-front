@@ -134,9 +134,9 @@ const SubscriptionForm = ({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []); // Only run once on mount
 
-	// Initialize invoicing customer toggle when editing a subscription that already has invoicingCustomerId set
+	// Initialize invoicing customer toggle when editing a subscription that already has invoicingCustomer set
 	useEffect(() => {
-		if (state.invoicingCustomerId) {
+		if (state.invoicingCustomer?.id) {
 			setShowInvoicingCustomer(true);
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -818,6 +818,21 @@ const SubscriptionForm = ({
 				</div>
 			)}
 
+			{/* Entitlements Section */}
+			{state.selectedPlan && !isLoadingPlanDetails && allEntitlements.length > 0 && (
+				<div className='space-y-4 mt-4 pt-3 border-t border-gray-200'>
+					<FormHeader className='mb-0' title='Entitlements' variant='sub-header' />
+					<div className='rounded-[6px] border border-gray-300 space-y-6 mt-2'>
+						<EntitlementOverridesTable
+							entitlements={allEntitlements}
+							overrides={state.entitlementOverrides}
+							onOverrideChange={handleEntitlementOverride}
+							onOverrideReset={handleEntitlementOverrideReset}
+						/>
+					</div>
+				</div>
+			)}
+
 			{/* Payment Terms */}
 			{state.selectedPlan && !isLoadingPlanDetails && (
 				<div className='mt-6 pt-6 border-t border-gray-200'>
@@ -836,13 +851,13 @@ const SubscriptionForm = ({
 			{state.selectedPlan && !isLoadingPlanDetails && (
 				<div className='mt-6 pt-6 border-t border-gray-200'>
 					<div className='flex items-center justify-between'>
-						<Label label='Override Invoicing Customer' />
+						<Label label='Invoicing Customer' />
 						<Switch
 							checked={showInvoicingCustomer}
 							onCheckedChange={(checked) => {
 								setShowInvoicingCustomer(checked);
 								if (!checked) {
-									setState((prev) => ({ ...prev, invoicingCustomerId: undefined }));
+									setState((prev) => ({ ...prev, invoicingCustomer: undefined }));
 								}
 							}}
 							disabled={isDisabled}
@@ -851,12 +866,12 @@ const SubscriptionForm = ({
 					{showInvoicingCustomer && (
 						<div className='mt-4'>
 							<CustomerSearchSelect
-								value={undefined}
+								value={state.invoicingCustomer}
 								excludeId={state.customerId}
 								onChange={(customer) => {
 									setState((prev) => ({
 										...prev,
-										invoicingCustomerId: customer?.id || undefined,
+										invoicingCustomer: customer || undefined,
 									}));
 								}}
 								display={{
@@ -867,21 +882,6 @@ const SubscriptionForm = ({
 							/>
 						</div>
 					)}
-				</div>
-			)}
-
-			{/* Entitlements Section */}
-			{state.selectedPlan && !isLoadingPlanDetails && allEntitlements.length > 0 && (
-				<div className='space-y-4 mt-4 pt-3 border-t border-gray-200'>
-					<FormHeader className='mb-0' title='Entitlements' variant='sub-header' />
-					<div className='rounded-[6px] border border-gray-300 space-y-6 mt-2'>
-						<EntitlementOverridesTable
-							entitlements={allEntitlements}
-							overrides={state.entitlementOverrides}
-							onOverrideChange={handleEntitlementOverride}
-							onOverrideReset={handleEntitlementOverrideReset}
-						/>
-					</div>
 				</div>
 			)}
 		</div>

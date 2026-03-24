@@ -17,6 +17,7 @@ import {
 	BILLING_CADENCE,
 	SubscriptionPhase,
 	Coupon,
+	Customer,
 	TAXRATE_ENTITY_TYPE,
 	EXPAND,
 	BILLING_CYCLE,
@@ -85,7 +86,7 @@ export type SubscriptionFormState = {
 	enable_true_up: boolean;
 	commitmentDuration: string;
 	/** The internal customer ID to invoice for this subscription (overrides the default) */
-	invoicingCustomerId?: string;
+	invoicingCustomer?: Customer;
 	paymentTerms?: string;
 	hasModifiedPlanCreditGrants?: boolean;
 	addedSubscriptionLineItems: AddedSubscriptionLineItem[];
@@ -248,7 +249,7 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 		creditGrants: [],
 		enable_true_up: false,
 		commitmentDuration: BILLING_PERIOD.MONTHLY.toUpperCase(),
-		invoicingCustomerId: undefined,
+		invoicingCustomer: undefined,
 		paymentTerms: undefined,
 		hasModifiedPlanCreditGrants: false,
 		addedSubscriptionLineItems: [],
@@ -436,7 +437,7 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 			commitmentAmount,
 			entitlementOverrides,
 			creditGrants,
-			invoicingCustomerId,
+			invoicingCustomer,
 			paymentTerms,
 			addedSubscriptionLineItems,
 		} = subscriptionState;
@@ -533,7 +534,7 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 			commitmentDuration: subscriptionState.commitmentDuration,
 			entitlementOverrides,
 			creditGrants,
-			invoicingCustomerId,
+			invoicingCustomerId: invoicingCustomer?.id,
 			paymentTerms,
 			sanitizedAddons,
 			addedSubscriptionLineItems,

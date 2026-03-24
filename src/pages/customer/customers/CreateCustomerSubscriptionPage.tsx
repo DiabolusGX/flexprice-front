@@ -613,7 +613,7 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 	return (
 		<div className={cn('flex gap-8 mt-5 relative mb-12')}>
 			<ApiDocsContent tags={['Subscriptions']} />
-			<div className='flex-1 space-y-6 mb-12 overflow-y-auto pr-4'>
+			<div className='flex-[6] space-y-6 mb-12 overflow-y-auto pr-4'>
 				{subscriptionData?.usage?.charges && subscriptionData.usage.charges.length > 0 && (
 					<div>
 						<UsageTable data={subscriptionData.usage} />
@@ -673,6 +673,8 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 					</div>
 				)}
 			</div>
+
+			<div className='flex-[4]'></div>
 		</div>
 	);
 };

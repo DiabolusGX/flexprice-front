@@ -1,39 +1,72 @@
-import { FormHeader, Loader, Page } from '@/components/atoms';
+import { Loader, Page } from '@/components/atoms';
 import { Integration, integrations } from './integrationsData';
-import { useNavigate } from 'react-router';
 import { cn } from '@/lib/utils';
 import { PremiumFeature, ApiDocsContent } from '@/components/molecules';
-import { useQuery } from '@tanstack/react-query';
-import IntegrationsApi from '@/api/IntegrationsApi';
+import { useMutation, useQueryClient, useQueries } from '@tanstack/react-query';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { ExternalLinkIcon, PencilIcon, TrashIcon } from 'lucide-react';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
+import ConnectionApi from '@/api/ConnectionApi';
+import { CONNECTION_PROVIDER_TYPE } from '@/models/Connection';
+import StripeConnectionDrawer from '@/components/molecules/StripeConnectionDrawer';
+import RazorpayConnectionDrawer from '@/components/molecules/RazorpayConnectionDrawer';
+import ChargebeeConnectionDrawer from '@/components/molecules/ChargebeeConnectionDrawer';
+import HubSpotConnectionDrawer from '@/components/molecules/HubSpotConnectionDrawer';
+import QuickBooksConnectionDrawer from '@/components/molecules/QuickBooksConnectionDrawer/QuickBooksConnectionDrawer';
+import NomodConnectionDrawer from '@/components/molecules/NomodConnectionDrawer';
+import MoyasarConnectionDrawer from '@/components/molecules/MoyasarConnectionDrawer';
+import IntegrationDrawer from '@/components/molecules/IntegrationDrawer/IntegrationDrawer';
+
+/** UI preview only: shows one card in connected state without real API data. Set to `null` to turn off. */
+const PREVIEW_CONNECTED_PROVIDER: string | null = null;
+const PREVIEW_MOCK_CONNECTION_ID = '__preview__';
 
 const Integrations = () => {
-	// Fetch integrations data
-	const { data: linkedinIntegration, isLoading } = useQuery({
-		queryKey: ['integrations'],
-		queryFn: async () => {
-			return await IntegrationsApi.getLinkedInIntegration();
-		},
+	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+	const [activeIntegration, setActiveIntegration] = useState<Integration | null>(null);
+	const [editingConnection, setEditingConnection] = useState<any | null>(null);
+
+	const connectionQueries = useQueries({
+		queries: integrations
+			.filter((i) => !i.premium && i.type === 'available')
+			.map((integration) => {
+				const provider = integration.name.toLowerCase() as CONNECTION_PROVIDER_TYPE;
+				return {
+					queryKey: ['connections', provider],
+					queryFn: () => ConnectionApi.List({ provider_type: provider }),
+				};
+			}),
 	});
-	// Filter integrations based on installation status
-	const installed = integrations.filter((integration) =>
-		linkedinIntegration?.providers?.some((provider) => provider.toLowerCase() === integration.name.toLowerCase()),
-	);
+
+	const connectionByProvider = new Map<string, any[]>();
+	const providerList = integrations.filter((i) => !i.premium && i.type === 'available').map((i) => i.name.toLowerCase());
+	for (let idx = 0; idx < providerList.length; idx++) {
+		const provider = providerList[idx];
+		const q = connectionQueries[idx];
+		connectionByProvider.set(provider, q?.data?.connections ?? []);
+	}
+
+	const isLoading = connectionQueries.some((q) => q.isLoading);
+
+	const hasConnection = (integration: Integration) => {
+		if (integration.premium) return false;
+		const provider = integration.name.toLowerCase();
+		return (connectionByProvider.get(provider) ?? []).length > 0;
+	};
 
 	const availableNonPremium = integrations.filter(
-		(integration) =>
-			!linkedinIntegration?.providers?.some((provider) => provider.toLowerCase() === integration.name.toLowerCase()) &&
-			integration.type === 'available' &&
-			!integration.premium &&
-			!integration.tags.includes('Data Pipelines'),
+		(integration) => integration.type === 'available' && !integration.premium && !integration.tags.includes('Data Pipelines'),
 	);
 
 	const availablePremium = integrations.filter(
-		(integration) =>
-			!linkedinIntegration?.providers?.some((provider) => provider.toLowerCase() === integration.name.toLowerCase()) &&
-			integration.type === 'available' &&
-			integration.premium &&
-			!integration.tags.includes('Data Pipelines'),
+		(integration) => integration.type === 'available' && integration.premium && !integration.tags.includes('Data Pipelines'),
 	);
+	const previewProvider = PREVIEW_CONNECTED_PROVIDER ?? '';
 
 	if (isLoading) {
 		return <Loader />;
@@ -42,71 +75,358 @@ const Integrations = () => {
 	return (
 		<Page heading='Integrations'>
 			<ApiDocsContent tags={['Integrations', 'secrets']} />
-			{installed.length > 0 && (
-				<div>
-					<FormHeader title='Installed' variant='sub-header' />
-					<div className='grid grid-cols-2 gap-4 '>
-						{installed.map((integration, index) => (
-							<IntegrationCard installed={true} key={index} integration={integration} />
-						))}
-					</div>
-				</div>
-			)}
 			<div className='mt-6'>
 				<h2 className='mb-4 font-medium text-xl'>Available</h2>
-				<div className='grid grid-cols-2 gap-4 '>
-					{availableNonPremium.map((integration, index) => (
-						<IntegrationCard key={index} integration={integration} />
-					))}
+				<div className='grid grid-cols-2 gap-4'>
+					{availableNonPremium.map((integration, index) => {
+						const previewConnected = !!PREVIEW_CONNECTED_PROVIDER && integration.name.toLowerCase() === previewProvider.toLowerCase();
+						const connected = hasConnection(integration) || previewConnected;
+						const connection =
+							connectionByProvider.get(integration.name.toLowerCase())?.[0] ??
+							(previewConnected ? { id: PREVIEW_MOCK_CONNECTION_ID, name: 'Preview connection' } : null);
+						return (
+							<div key={`${integration.name}-${index}`} className='min-w-0'>
+								<IntegrationCard
+									integration={integration}
+									connected={connected}
+									connection={connection}
+									isPreviewConnection={connection?.id === PREVIEW_MOCK_CONNECTION_ID}
+									onOpenDrawer={(mode) => {
+										setActiveIntegration(integration);
+										setEditingConnection(mode === 'edit' ? (connectionByProvider.get(integration.name.toLowerCase())?.[0] ?? null) : null);
+										setIsDrawerOpen(true);
+									}}
+									onDeleted={() => {
+										connectionQueries.forEach((q) => q.refetch?.());
+									}}
+								/>
+							</div>
+						);
+					})}
 				</div>
 			</div>
 			<div className='mt-16'>
 				<p className='mb-4 font-medium text-xl'>Premium add-ons</p>
-				<div className='grid grid-cols-2 gap-4 '>
+				<div className='grid grid-cols-2 gap-4'>
 					{availablePremium.map((integration, index) => (
-						<IntegrationCard key={index} integration={integration} />
+						<div key={`${integration.name}-${index}`} className='min-w-0'>
+							<IntegrationCard integration={integration} connected={false} connection={null} />
+						</div>
 					))}
 				</div>
 			</div>
+
+			{/* Provider drawer rendered on this page */}
+			{activeIntegration && (
+				<>
+					{activeIntegration.name.toLowerCase() === CONNECTION_PROVIDER_TYPE.STRIPE ? (
+						<StripeConnectionDrawer
+							isOpen={isDrawerOpen}
+							onOpenChange={(open) => {
+								setIsDrawerOpen(open);
+								if (!open) {
+									setEditingConnection(null);
+									setActiveIntegration(null);
+								}
+							}}
+							connection={editingConnection}
+							onSave={() => {
+								connectionQueries.forEach((q) => q.refetch?.());
+								setIsDrawerOpen(false);
+								setEditingConnection(null);
+								setActiveIntegration(null);
+							}}
+						/>
+					) : activeIntegration.name.toLowerCase() === CONNECTION_PROVIDER_TYPE.RAZORPAY ? (
+						<RazorpayConnectionDrawer
+							isOpen={isDrawerOpen}
+							onOpenChange={(open) => {
+								setIsDrawerOpen(open);
+								if (!open) {
+									setEditingConnection(null);
+									setActiveIntegration(null);
+								}
+							}}
+							connection={editingConnection}
+							onSave={() => {
+								connectionQueries.forEach((q) => q.refetch?.());
+								setIsDrawerOpen(false);
+								setEditingConnection(null);
+								setActiveIntegration(null);
+							}}
+						/>
+					) : activeIntegration.name.toLowerCase() === CONNECTION_PROVIDER_TYPE.CHARGEBEE ? (
+						<ChargebeeConnectionDrawer
+							isOpen={isDrawerOpen}
+							onOpenChange={(open) => {
+								setIsDrawerOpen(open);
+								if (!open) {
+									setEditingConnection(null);
+									setActiveIntegration(null);
+								}
+							}}
+							connection={editingConnection}
+							onSave={() => {
+								connectionQueries.forEach((q) => q.refetch?.());
+								setIsDrawerOpen(false);
+								setEditingConnection(null);
+								setActiveIntegration(null);
+							}}
+						/>
+					) : activeIntegration.name.toLowerCase() === CONNECTION_PROVIDER_TYPE.HUBSPOT ? (
+						<HubSpotConnectionDrawer
+							isOpen={isDrawerOpen}
+							onOpenChange={(open) => {
+								setIsDrawerOpen(open);
+								if (!open) {
+									setEditingConnection(null);
+									setActiveIntegration(null);
+								}
+							}}
+							connection={editingConnection}
+							onSave={() => {
+								connectionQueries.forEach((q) => q.refetch?.());
+								setIsDrawerOpen(false);
+								setEditingConnection(null);
+								setActiveIntegration(null);
+							}}
+						/>
+					) : activeIntegration.name.toLowerCase() === CONNECTION_PROVIDER_TYPE.QUICKBOOKS ? (
+						<QuickBooksConnectionDrawer
+							isOpen={isDrawerOpen}
+							onOpenChange={(open) => {
+								setIsDrawerOpen(open);
+								if (!open) {
+									setEditingConnection(null);
+									setActiveIntegration(null);
+								}
+							}}
+							connection={editingConnection}
+							onSave={() => {
+								connectionQueries.forEach((q) => q.refetch?.());
+								setIsDrawerOpen(false);
+								setEditingConnection(null);
+								setActiveIntegration(null);
+							}}
+						/>
+					) : activeIntegration.name.toLowerCase() === CONNECTION_PROVIDER_TYPE.NOMOD ? (
+						<NomodConnectionDrawer
+							isOpen={isDrawerOpen}
+							onOpenChange={(open) => {
+								setIsDrawerOpen(open);
+								if (!open) {
+									setEditingConnection(null);
+									setActiveIntegration(null);
+								}
+							}}
+							connection={editingConnection}
+							onSave={() => {
+								connectionQueries.forEach((q) => q.refetch?.());
+								setIsDrawerOpen(false);
+								setEditingConnection(null);
+								setActiveIntegration(null);
+							}}
+						/>
+					) : activeIntegration.name.toLowerCase() === CONNECTION_PROVIDER_TYPE.MOYASAR ? (
+						<MoyasarConnectionDrawer
+							isOpen={isDrawerOpen}
+							onOpenChange={(open) => {
+								setIsDrawerOpen(open);
+								if (!open) {
+									setEditingConnection(null);
+									setActiveIntegration(null);
+								}
+							}}
+							connection={editingConnection}
+							onSave={() => {
+								connectionQueries.forEach((q) => q.refetch?.());
+								setIsDrawerOpen(false);
+								setEditingConnection(null);
+								setActiveIntegration(null);
+							}}
+						/>
+					) : (
+						<IntegrationDrawer
+							isOpen={isDrawerOpen}
+							onOpenChange={(open) => {
+								setIsDrawerOpen(open);
+								if (!open) {
+									setEditingConnection(null);
+									setActiveIntegration(null);
+								}
+							}}
+							provider={activeIntegration.name.toLowerCase()}
+							providerName={activeIntegration.name}
+							connection={editingConnection}
+							onSave={() => {
+								connectionQueries.forEach((q) => q.refetch?.());
+								setIsDrawerOpen(false);
+								setEditingConnection(null);
+								setActiveIntegration(null);
+							}}
+						/>
+					)}
+				</>
+			)}
 		</Page>
 	);
 };
 
-const IntegrationCard = ({ integration }: { integration: Integration; installed?: boolean }) => {
-	const navigate = useNavigate();
+type IntegrationCardProps = {
+	integration: Integration;
+	connected: boolean;
+	connection: any | null;
+	/** Mock connection used only for UI preview */
+	isPreviewConnection?: boolean;
+	onOpenDrawer?: (mode?: 'edit' | 'create') => void;
+	onDeleted?: () => void;
+};
 
-	const handleCardClick = () => {
-		if (!integration.premium) {
-			navigate(integration.name.toLowerCase());
+const IntegrationCard = ({ integration, connected, connection, isPreviewConnection, onOpenDrawer, onDeleted }: IntegrationCardProps) => {
+	const queryClient = useQueryClient();
+	const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
+
+	const providerKey = integration.name.toLowerCase();
+
+	const { mutate: deleteConnection, isPending: isDeletingConnection } = useMutation({
+		mutationFn: (id: string) => ConnectionApi.Delete(id),
+		onSuccess: () => {
+			toast.success(`${integration.name} disconnected`);
+			queryClient.invalidateQueries({ queryKey: ['connections', providerKey] });
+			setDisconnectDialogOpen(false);
+			onDeleted?.();
+		},
+		onError: (err: Error) => {
+			toast.error(err?.message ?? 'Failed to disconnect');
+		},
+	});
+
+	const handleToggle = (checked: boolean) => {
+		if (integration.premium) return;
+		if (checked) {
+			// Open create drawer
+			onOpenDrawer?.('create');
+		} else {
+			setDisconnectDialogOpen(true);
 		}
+	};
+
+	const handleConfirmDisconnect = () => {
+		if (!connection?.id) return;
+		if (connection.id === PREVIEW_MOCK_CONNECTION_ID) {
+			toast.success('Preview only — this is a mock connected state.');
+			setDisconnectDialogOpen(false);
+			return;
+		}
+		deleteConnection(connection.id);
 	};
 
 	return (
 		<PremiumFeature isPremiumFeature={integration.premium}>
-			<div className='relative'>
-				<div onClick={handleCardClick} className={cn('border rounded-[6px] p-4 flex shadow-sm relative', 'cursor-pointer')}>
-					<div className='w-16 h-16 flex items-center justify-center bg-gray-100 rounded-[6px]'>
-						<img src={integration.logo} alt={integration.name} className='w-10 h-10 object-contain' />
-					</div>
-					<div className='ml-4 flex-1'>
-						<div className={cn('w-full', integration.premium ? 'mb-4' : 'mb-1')}>
-							<h3 className='font-semibold text-lg'>{integration.name}</h3>
-							{integration.premium && <span className='text-[#c58e20]'>Premium</span>}
+			<Card className={cn('min-w-0 overflow-hidden border-slate-200 shadow-sm rounded-xl')}>
+				<CardContent className='min-w-0 overflow-hidden p-6'>
+					<div className='flex gap-5'>
+						<div className='flex size-14 shrink-0 items-center justify-center rounded-lg bg-slate-100'>
+							<img src={integration.logo} alt={integration.name} className='size-8 object-contain' />
 						</div>
-						<p className='text-gray-500 text-sm'>{integration.description}</p>
-						<div className='mt-5 flex items-center gap-2 '>
-							{integration.tags.map((tag, idx) => (
-								<span key={idx} className='text-xs bg-[#f4f4f4] text-[#5e5e5e] px-2 py-1 rounded-[6px] mb-1'>
-									{tag}
-								</span>
-							))}
+						<div className='min-w-0 flex-1 space-y-2'>
+							<div className='flex items-center gap-2'>
+								<h3 className='font-semibold text-lg text-foreground'>{integration.name}</h3>
+								{connected && (
+									<span className='inline-flex h-5 items-center rounded-sm bg-emerald-100 px-2 text-xs font-medium text-emerald-700'>
+										Connected
+									</span>
+								)}
+								{integration.premium && (
+									<span className='inline-flex h-5 items-center rounded-sm bg-amber-100 px-2 text-xs font-medium text-amber-700'>
+										Premium
+									</span>
+								)}
+								<div className='ml-auto'>
+									{integration.docsUrl ? (
+										<a
+											href={integration.docsUrl}
+											target='_blank'
+											rel='noopener noreferrer'
+											className='inline-flex h-5 items-center gap-1 text-xs text-slate-500 transition-colors hover:text-slate-700'
+											title={`Open ${integration.name} docs`}>
+											Docs
+											<ExternalLinkIcon className='size-3.5' />
+										</a>
+									) : null}
+								</div>
+							</div>
+							<div className='min-w-0 overflow-hidden'>
+								<p className='text-sm text-slate-500 line-clamp-2 break-words'>{integration.description}</p>
+							</div>
+							{integration.tags.length > 0 && (
+								<div className='flex flex-wrap gap-1.5 pt-1'>
+									{integration.tags.slice(0, 3).map((tag, idx) => (
+										<span key={idx} className='text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-sm'>
+											{tag}
+										</span>
+									))}
+								</div>
+							)}
 						</div>
-						{/* {integration.type === 'available' && !integration.premium && !installed && (
-							<Button className='flex gap-2 items-center'>Install</Button>
-						)} */}
 					</div>
-				</div>
-			</div>
+				</CardContent>
+				<Separator className='bg-slate-100' />
+				<CardFooter className='flex flex-row items-center justify-between px-6 py-4'>
+					<div className='flex items-center gap-2'>
+						{connected ? (
+							<>
+								<Button
+									type='button'
+									variant='outline'
+									size='icon'
+									className='h-8 w-8'
+									onClick={() => onOpenDrawer?.('edit')}
+									disabled={integration.premium || isPreviewConnection}>
+									<PencilIcon className='size-4' />
+								</Button>
+								<Button
+									type='button'
+									variant='outline'
+									size='icon'
+									className='h-8 w-8'
+									onClick={() => setDisconnectDialogOpen(true)}
+									disabled={integration.premium}>
+									<TrashIcon className='size-4' />
+								</Button>
+							</>
+						) : null}
+					</div>
+					<Switch
+						checked={connected}
+						onCheckedChange={handleToggle}
+						disabled={integration.premium}
+						className={cn(
+							'data-[state=unchecked]:bg-slate-800',
+							'data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500',
+						)}
+					/>
+				</CardFooter>
+			</Card>
+
+			<Dialog open={disconnectDialogOpen} onOpenChange={setDisconnectDialogOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Disconnect {integration.name}?</DialogTitle>
+						<DialogDescription>
+							This will remove the connection. You can reconnect from the integrations page at any time.
+						</DialogDescription>
+					</DialogHeader>
+					<DialogFooter>
+						<Button variant='outline' onClick={() => setDisconnectDialogOpen(false)} disabled={isDeletingConnection}>
+							Cancel
+						</Button>
+						<Button variant='destructive' onClick={handleConfirmDisconnect} disabled={isDeletingConnection || !connection?.id}>
+							{isDeletingConnection ? 'Disconnecting…' : 'Disconnect'}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</PremiumFeature>
 	);
 };

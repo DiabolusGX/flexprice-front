@@ -189,7 +189,7 @@ const OnboardingTenant = () => {
 				backgroundPosition: 'center',
 			}}>
 			<div className='absolute inset-0 bg-white/30' aria-hidden />
-			<div className='relative my-8 w-full max-w-[480px] rounded-2xl bg-white p-8 shadow-xl'>
+			<div className='relative my-8 w-full max-w-[480px] rounded-2xl bg-white p-8 shadow-lg'>
 				<div className='mb-6 flex justify-center'>
 					<img src={flexpriceLogo} alt='Flexprice' className='h-12' />
 				</div>

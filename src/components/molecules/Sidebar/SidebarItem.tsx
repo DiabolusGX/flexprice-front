@@ -122,13 +122,22 @@ const SidebarItem: FC<SidebarItemProps> = (item) => {
 						<SidebarMenuSub className='gap-0 transition-opacity duration-200'>
 							{item.items?.map((subItem) => {
 								const subActive = location.pathname.startsWith(subItem.url);
+								const SubIcon = subItem.icon;
 								return (
 									<SidebarMenuSubItem key={subItem.title}>
 										<SidebarMenuSubButton
 											asChild
 											isActive={subActive}
 											className={cn('w-full font-light text-black transition-colors duration-200')}>
-											<Link to={subItem.url}>{subItem.title}</Link>
+											<Link to={subItem.url} className='flex items-center gap-2'>
+												{SubIcon && (
+													<SubIcon
+														absoluteStrokeWidth
+														className={cn('!size-4 !stroke-[1.5px]', subActive ? 'text-blue-600' : 'text-[#52525B]')}
+													/>
+												)}
+												<span>{subItem.title}</span>
+											</Link>
 										</SidebarMenuSubButton>
 									</SidebarMenuSubItem>
 								);

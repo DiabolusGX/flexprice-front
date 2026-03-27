@@ -320,3 +320,5 @@ export type {
 	BatchWorkflowsRequest,
 	BatchWorkflowsResponse,
 } from './Workflow';
+
+export type { RevenueDashboardRequest, RevenueDashboardResponse, RevenueDashboardSummary, RevenueDashboardItem } from './RevenueDashboard';

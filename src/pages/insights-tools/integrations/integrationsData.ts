@@ -292,7 +292,7 @@ export const integrations: Integration[] = [
 	{
 		name: 'Paddle',
 		description: 'Send invoices and collect payments using Paddle payment gateway integration.',
-		logo: '/assets/logo/paddle.png',
+		logo: '/assets/paddlelogo.png',
 		tags: ['Payments', 'Invoices'],
 		type: 'available',
 		info: [

@@ -78,6 +78,7 @@ import {
 	// Insights tools pages
 	Integrations,
 	IntegrationDetails,
+	Revenue,
 	Exports,
 	S3Exports,
 	ExportManagement,
@@ -168,6 +169,7 @@ export const RouteNames = {
 	// tools routes
 	tools: '/tools',
 	bulkImports: '/tools/bulk-imports',
+	revenue: '/revenue',
 	integrations: '/tools/integrations',
 	integrationDetails: '/tools/integrations',
 	oauthCallback: '/tools/integrations/oauth/callback', // Generic OAuth callback (backend redirect URI)
@@ -495,6 +497,10 @@ export const MainRouter = createBrowserRouter([
 			{
 				path: RouteNames.pricing,
 				element: <PricingPage />,
+			},
+			{
+				path: RouteNames.revenue,
+				element: <Revenue />,
 			},
 			{
 				path: RouteNames.developers,

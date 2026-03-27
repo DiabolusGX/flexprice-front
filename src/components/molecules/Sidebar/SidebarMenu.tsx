@@ -16,6 +16,7 @@ export type NavItem = {
 	items?: {
 		title: string;
 		url: string;
+		icon?: LucideIcon;
 	}[];
 	isOpen?: boolean;
 	onToggle?: (isOpen: boolean) => void;

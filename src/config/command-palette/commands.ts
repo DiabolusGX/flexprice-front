@@ -7,6 +7,7 @@ import {
 	CodeXml,
 	Puzzle,
 	GalleryHorizontalEnd,
+	BarChart3,
 	Plus,
 	CreditCard,
 	Receipt,
@@ -352,6 +353,14 @@ export const commandPaletteCommands: CommandPaletteCommand[] = [
 		path: P['tools-bulk-imports'],
 		keywords: ['imports', 'bulk import', 'tools'],
 		icon: Settings,
+	},
+	{
+		id: CommandPaletteCommandId.navToolsRevenue,
+		label: 'Tools → Revenue',
+		group: CommandPaletteGroup.GoTo,
+		path: P['tools-revenue'],
+		keywords: ['revenue', 'dashboard', 'tools'],
+		icon: BarChart3,
 	},
 	{
 		id: CommandPaletteCommandId.navToolsExports,

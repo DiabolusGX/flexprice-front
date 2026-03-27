@@ -86,7 +86,7 @@ const IntegrationCard = ({ integration }: { integration: Integration; installed?
 			<div className='relative'>
 				<div onClick={handleCardClick} className={cn('border rounded-[6px] p-4 flex shadow-sm relative', 'cursor-pointer')}>
 					<div className='w-16 h-16 flex items-center justify-center bg-gray-100 rounded-[6px]'>
-						<img src={integration.logo} alt={integration.name} className='w-12 h-12 object-contain' />
+						<img src={integration.logo} alt={integration.name} className='w-10 h-10 object-contain' />
 					</div>
 					<div className='ml-4 flex-1'>
 						<div className={cn('w-full', integration.premium ? 'mb-4' : 'mb-1')}>

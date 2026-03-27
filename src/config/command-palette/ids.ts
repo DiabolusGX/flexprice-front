@@ -45,6 +45,7 @@ export const CommandPaletteCommandId = {
 	navSettingsBilling: 'nav-settings-billing',
 	// Go to - Tools
 	navToolsImports: 'nav-tools-imports',
+	navToolsRevenue: 'nav-tools-revenue',
 	navToolsExports: 'nav-tools-exports',
 	navToolsS3Exports: 'nav-tools-s3-exports',
 	// Go to - Developers / Usage

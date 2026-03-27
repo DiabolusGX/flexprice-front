@@ -99,7 +99,7 @@ const IntegrationDetails = () => {
 			<ApiDocsContent tags={['Integrations', 'secrets']} />
 			<div className={cn('border rounded-[6px] p-4 flex items-center shadow-sm', !integration.premium && 'cursor-pointer')}>
 				<div className='size-20 flex items-center justify-center bg-gray-100 rounded-[6px]'>
-					<img src={integration.logo} alt={integration.name} className='size-16 object-contain' />
+					<img src={integration.logo} alt={integration.name} className='size-10 object-contain' />
 				</div>
 				<div className='ml-4 flex-1'>
 					<div className='flex items-center justify-between w-full'>

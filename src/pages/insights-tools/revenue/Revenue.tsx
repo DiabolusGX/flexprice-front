@@ -72,6 +72,12 @@ const formatInteger = (value: number | null) => {
 	return value.toLocaleString();
 };
 
+const toNumberOrNull = (value: unknown): number | null => {
+	if (value == null) return null;
+	const numeric = typeof value === 'number' ? value : Number(value);
+	return Number.isFinite(numeric) ? numeric : null;
+};
+
 const Revenue = () => {
 	const [selectedFilter, setSelectedFilter] = useState<RevenueFilterValue>('this_month');
 	const { start, end } = useMemo(() => getDateRangeForPeriod(selectedFilter), [selectedFilter]);
@@ -91,20 +97,20 @@ const Revenue = () => {
 	const items = data?.items ?? [];
 	const hasRows = items.length > 0;
 	const hasAnyMetricData = [
-		summary?.total_revenue,
-		summary?.total_fixed_revenue,
-		summary?.total_usage_revenue,
-		summary?.voice_minutes,
-		summary?.cost_per_minute,
+		toNumberOrNull(summary?.total_revenue),
+		toNumberOrNull(summary?.total_fixed_revenue),
+		toNumberOrNull(summary?.total_usage_revenue),
+		toNumberOrNull(summary?.voice_minutes),
+		toNumberOrNull(summary?.cost_per_minute),
 	].some((value) => Number(value ?? 0) > 0);
-	const showGlobalEmpty = !hasRows && !hasAnyMetricData;
+	const showGlobalEmpty = !isLoading && !hasRows && !hasAnyMetricData;
 
 	const normalizedSummary = {
-		netRevenue: summary?.total_revenue ?? null,
-		fixedContractRevenue: summary?.total_fixed_revenue ?? null,
-		usageRevenue: summary?.total_usage_revenue ?? null,
-		totalMinutes: summary?.voice_minutes ?? null,
-		costPerMinute: summary?.cost_per_minute ?? null,
+		netRevenue: toNumberOrNull(summary?.total_revenue),
+		fixedContractRevenue: toNumberOrNull(summary?.total_fixed_revenue),
+		usageRevenue: toNumberOrNull(summary?.total_usage_revenue),
+		totalMinutes: toNumberOrNull(summary?.voice_minutes),
+		costPerMinute: toNumberOrNull(summary?.cost_per_minute),
 		currency: 'usd',
 	};
 
@@ -177,24 +183,27 @@ const Revenue = () => {
 										key={`${row.customer_id}:${row.external_customer_id}`}
 										className='h-10 align-middle border-b border-gray-200 bg-white hover:bg-gray-50/50 transition-colors'>
 										<TableCell className='py-2.5 pl-4 font-normal text-gray-700 text-[13px] align-middle'>
-											<RedirectCell redirectUrl={`${RouteNames.customers}/${row.customer_id}`}>
+											<RedirectCell redirectUrl={`${RouteNames.customers}/${row.customer_id}`} allowRedirect={Boolean(row.customer_id)}>
 												{row.customer_name || row.external_customer_id || 'Unknown'}
 											</RedirectCell>
 										</TableCell>
 										<TableCell className='py-2.5 font-semibold text-gray-700 text-[13px]'>
-											{formatCurrency((row.total_usage_revenue ?? 0) + (row.total_fixed_revenue ?? 0), normalizedSummary.currency)}
+											{formatCurrency(
+												(toNumberOrNull(row.total_usage_revenue) ?? 0) + (toNumberOrNull(row.total_fixed_revenue) ?? 0),
+												normalizedSummary.currency,
+											)}
 										</TableCell>
 										<TableCell className='py-2.5 font-normal text-gray-600 text-[13px]'>
-											{formatCurrency(row.total_fixed_revenue ?? null, normalizedSummary.currency)}
+											{formatCurrency(toNumberOrNull(row.total_fixed_revenue), normalizedSummary.currency)}
 										</TableCell>
 										<TableCell className='py-2.5 font-normal text-gray-600 text-[13px]'>
-											{formatCurrency(row.total_usage_revenue ?? null, normalizedSummary.currency)}
+											{formatCurrency(toNumberOrNull(row.total_usage_revenue), normalizedSummary.currency)}
 										</TableCell>
 										<TableCell className='py-2.5 font-normal text-gray-600 text-[13px]'>
-											{formatInteger(row.voice_minutes ?? null)}
+											{formatInteger(toNumberOrNull(row.voice_minutes))}
 										</TableCell>
 										<TableCell className='py-2.5 font-normal text-gray-600 text-[13px]'>
-											{formatDecimal(row.cost_per_minute ?? null)}
+											{formatDecimal(toNumberOrNull(row.cost_per_minute))}
 										</TableCell>
 									</TableRow>
 								))}

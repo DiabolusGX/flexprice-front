@@ -37,6 +37,15 @@ const MainLayout: React.FC = () => {
 			tenant_id: user.tenant?.id,
 			tenant_name: user.tenant?.name,
 		});
+
+		if (window.Reo) {
+			window.Reo.identify({
+				username: user.email,
+				type: 'email',
+				firstname: user.name || '',
+				company: user.tenant?.name || '',
+			});
+		}
 	}, [user, navigate]);
 
 	useEffect(() => {

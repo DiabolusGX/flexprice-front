@@ -39,13 +39,16 @@ const App = () => {
 									primary: '#E76E50',
 									secondary: '#fff',
 								},
+								// Long API messages (e.g. validation_error) must wrap; nowrap + maxWidth:none
+								// makes the bar huge and centers it so most of the text sits off-screen.
 								style: {
-									whiteSpace: 'nowrap',
-									minWidth: 'fit-content',
-									width: 'auto',
-									maxWidth: 'none',
+									whiteSpace: 'normal',
+									wordBreak: 'break-word',
+									minWidth: 'min(100%, 280px)',
+									maxWidth: 'min(calc(100vw - 32px), 520px)',
+									width: 'max-content',
 								},
-								className: 'whitespace-nowrap',
+								className: 'break-words',
 							},
 						}}
 						position='bottom-center'

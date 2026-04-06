@@ -16,7 +16,36 @@ export interface FlatApiError {
  * - `{ message, code, http_status_code }` (flat validation / API errors)
  * - `Error` instances
  */
+function pickMessage(value: unknown): string | undefined {
+	if (typeof value === 'string' && value.trim()) {
+		return value.trim();
+	}
+	if (Array.isArray(value) && value.length > 0) {
+		const parts = value.map((v) => (typeof v === 'string' ? v : JSON.stringify(v))).filter(Boolean);
+		if (parts.length) return parts.join(' ');
+	}
+	return undefined;
+}
+
 export function getApiErrorMessage(error: unknown, fallback: string): string {
+	if (typeof error === 'string') {
+		const trimmed = error.trim();
+		if (trimmed.startsWith('{')) {
+			try {
+				const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+				const fromJson =
+					pickMessage(parsed.message) ||
+					pickMessage(parsed.detail) ||
+					(parsed.error && typeof parsed.error === 'object' && parsed.error !== null
+						? pickMessage((parsed.error as { message?: unknown }).message)
+						: undefined);
+				if (fromJson) return fromJson;
+			} catch {
+				/* use raw string */
+			}
+		}
+		if (trimmed) return trimmed;
+	}
 	if (error instanceof Error && error.message) {
 		return error.message;
 	}
@@ -24,15 +53,11 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
 		const e = error as Record<string, unknown>;
 		const nested = e.error;
 		if (nested && typeof nested === 'object' && nested !== null) {
-			const msg = (nested as { message?: unknown }).message;
-			if (typeof msg === 'string' && msg.trim()) {
-				return msg;
-			}
+			const msg = pickMessage((nested as { message?: unknown }).message);
+			if (msg) return msg;
 		}
-		const top = e.message;
-		if (typeof top === 'string' && top.trim()) {
-			return top;
-		}
+		const fromTop = pickMessage(e.message) || pickMessage(e.detail);
+		if (fromTop) return fromTop;
 	}
 	return fallback;
 }

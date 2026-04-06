@@ -64,14 +64,28 @@ const CustomerSubscriptionDetailsPage: FC = () => {
 		enabled: !!customerId,
 	});
 
-	// Fetch invoicing customer if different from subscription customer
 	const { data: invoicingCustomer } = useQuery({
 		queryKey: ['invoicingCustomer', subscriptionDetails?.invoicing_customer_id],
 		queryFn: async () => {
 			if (!subscriptionDetails?.invoicing_customer_id) return null;
 			return await CustomerApi.getCustomerById(subscriptionDetails.invoicing_customer_id);
 		},
-		enabled: !!subscriptionDetails?.invoicing_customer_id && subscriptionDetails.invoicing_customer_id !== subscriptionDetails?.customer_id,
+		enabled: !!subscriptionDetails?.invoicing_customer_id,
+	});
+
+	const parentSubscriptionId = subscriptionDetails?.parent_subscription_id;
+	const { data: parentSubscription, isLoading: isParentSubscriptionLoading } = useQuery({
+		queryKey: ['parentSubscription', parentSubscriptionId],
+		queryFn: async () => SubscriptionApi.getSubscriptionV2(parentSubscriptionId!, { expand: 'plan' }),
+		enabled: !!parentSubscriptionId,
+		staleTime: 1,
+	});
+
+	const parentCustomerId = parentSubscription?.customer_id;
+	const { data: parentCustomer, isLoading: isParentCustomerLoading } = useQuery({
+		queryKey: ['parentSubscriptionCustomer', parentCustomerId],
+		queryFn: async () => CustomerApi.getCustomerById(parentCustomerId!),
+		enabled: !!parentCustomerId,
 	});
 
 	const [showZeroCharges, setShowZeroCharges] = useState(false);
@@ -253,7 +267,7 @@ const CustomerSubscriptionDetailsPage: FC = () => {
 				</div>
 				<Spacer className='!my-4' />
 
-				{subscriptionDetails?.invoicing_customer_id && subscriptionDetails.invoicing_customer_id !== subscriptionDetails.customer_id && (
+				{subscriptionDetails?.invoicing_customer_id && (
 					<>
 						<div className='w-full flex justify-between items-center'>
 							<p className='text-[#71717A] text-sm'>Invoicing Customer</p>
@@ -268,26 +282,22 @@ const CustomerSubscriptionDetailsPage: FC = () => {
 					</>
 				)}
 
-				<div className='w-full flex justify-between items-center'>
-					<p className='text-[#71717A] text-sm'>Subscription type</p>
-					<p className='text-[#09090B] text-sm'>
-						{subscriptionDetails?.subscription_type
-							? subscriptionDetails.subscription_type.charAt(0).toUpperCase() + subscriptionDetails.subscription_type.slice(1)
-							: 'Standalone'}
-					</p>
-				</div>
-				<Spacer className='!my-4' />
-
 				{subscriptionDetails?.parent_subscription_id && (
 					<>
 						<div className='w-full flex justify-between items-center'>
-							<p className='text-[#71717A] text-sm'>Parent subscription</p>
-							<Link
-								to={`${RouteNames.subscriptions}/${subscriptionDetails.parent_subscription_id}/edit`}
-								className='inline-flex items-center text-sm gap-1.5 hover:underline transition-colors'>
-								{subscriptionDetails.parent_subscription_id}
-								<ExternalLink className='w-3.5 h-3.5' />
-							</Link>
+							<p className='text-[#71717A] text-sm'>Parent customer</p>
+							{isParentSubscriptionLoading || (parentCustomerId && isParentCustomerLoading) ? (
+								<Skeleton className='h-4 w-40' />
+							) : parentCustomerId ? (
+								<Link
+									to={`${RouteNames.customers}/${parentCustomerId}`}
+									className='inline-flex items-center text-sm gap-1.5 hover:underline transition-colors'>
+									{parentCustomer?.name || parentCustomer?.external_id || parentCustomerId}
+									<ExternalLink className='w-3.5 h-3.5' />
+								</Link>
+							) : (
+								<p className='text-[#09090B] text-sm'>--</p>
+							)}
 						</div>
 						<Spacer className='!my-4' />
 					</>

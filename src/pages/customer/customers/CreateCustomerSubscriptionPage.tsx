@@ -11,7 +11,7 @@ import { AlertTriangle } from 'lucide-react';
 import { AddonApi, CustomerApi, PlanApi, SubscriptionApi, TaxApi, CouponApi } from '@/api';
 import { refetchQueries } from '@/core/services/tanstack/ReactQueryProvider';
 import { RouteNames } from '@/core/routes/Routes';
-import { ServerError } from '@/core/axios/types';
+import { getApiErrorMessage } from '@/core/axios/types';
 
 import {
 	BILLING_CADENCE,
@@ -34,6 +34,7 @@ import {
 	TaxRateOverride,
 	EntitlementOverrideRequest,
 	SearchPricesResponse,
+	SubscriptionInheritanceConfig,
 } from '@/types/dto';
 import { FilterOperator, DataType } from '@/types/common/QueryBuilder';
 import { OverrideLineItemRequest, SubscriptionPhaseCreateRequest } from '@/types/dto/Subscription';
@@ -86,7 +87,7 @@ export type SubscriptionFormState = {
 	creditGrants: InternalCreditGrantRequest[];
 	enable_true_up: boolean;
 	commitmentDuration: string;
-	/** The internal customer ID to invoice for this subscription (overrides the default) */
+	/** Billing customer (serialized as inheritance.invoicing_customer_external_id on create) */
 	invoicingCustomer?: Customer;
 	paymentTerms?: string;
 	/** When true, create payload sends proration_behavior CREATE_PRORATIONS; when false, sends NONE */
@@ -386,8 +387,8 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 
 			navigate(`${RouteNames.customers}/${customerId}`);
 		},
-		onError: (error: ServerError) => {
-			toast.error(error.error.message || 'Error creating subscription');
+		onError: (error: unknown) => {
+			toast.error(getApiErrorMessage(error, 'Error creating subscription'));
 		},
 	});
 
@@ -528,6 +529,11 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 
 		const inheritanceExternalIds = inheritanceCustomers.map((c) => c.external_id?.trim()).filter((id): id is string => Boolean(id));
 
+		const invoicingCustomerExternalId =
+			invoicingCustomer?.id && invoicingCustomer.id !== formCustomerId && invoicingCustomer.external_id?.trim()
+				? invoicingCustomer.external_id.trim()
+				: undefined;
+
 		return {
 			billingPeriod,
 			selectedPlan,
@@ -546,7 +552,7 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 			commitmentDuration: subscriptionState.commitmentDuration,
 			entitlementOverrides,
 			creditGrants,
-			invoicingCustomerId: invoicingCustomer?.id && invoicingCustomer.id !== formCustomerId ? invoicingCustomer.id : undefined,
+			invoicingCustomerExternalId,
 			paymentTerms,
 			sanitizedAddons,
 			addedSubscriptionLineItems,
@@ -554,7 +560,7 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 		};
 	};
 
-	const handleSubscriptionSubmit = (isDraftParam: boolean = false) => {
+	const handleSubscriptionSubmit = async (isDraftParam: boolean = false) => {
 		// Validate form data
 		const validationError = validateSubscriptionData();
 		if (validationError) {
@@ -564,6 +570,37 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 
 		// Sanitize subscription data
 		const sanitized = sanitizeSubscriptionData();
+
+		const { invoicingCustomer, customerId: formCustomerId } = subscriptionState;
+
+		// Billing customer must be sent as inheritance.invoicing_customer_external_id. Search results
+		// may omit external_id; resolve the full customer before building the payload.
+		let invoicingCustomerExternalId = sanitized.invoicingCustomerExternalId;
+		if (invoicingCustomer?.id && invoicingCustomer.id !== formCustomerId) {
+			let ext: string | undefined = invoicingCustomer.external_id?.trim();
+			if (!ext) {
+				try {
+					const full = await CustomerApi.getCustomerById(invoicingCustomer.id);
+					ext = full.external_id?.trim() || undefined;
+				} catch {
+					toast.error('Could not load billing customer details.');
+					return;
+				}
+			}
+			invoicingCustomerExternalId = ext;
+			if (!invoicingCustomerExternalId) {
+				toast.error('Billing customer must have an external ID.');
+				return;
+			}
+		}
+
+		const inheritancePayload: SubscriptionInheritanceConfig = {};
+		if (sanitized.inheritanceExternalIds.length > 0) {
+			inheritancePayload.external_customer_ids_to_inherit_subscription = sanitized.inheritanceExternalIds;
+		}
+		if (invoicingCustomerExternalId) {
+			inheritancePayload.invoicing_customer_external_id = invoicingCustomerExternalId;
+		}
 
 		// Build API payload
 		const payload: CreateSubscriptionRequest = {
@@ -601,7 +638,6 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 			enable_true_up: subscriptionState.enable_true_up,
 			commitment_duration: sanitized.commitmentDuration ? (sanitized.commitmentDuration as BILLING_PERIOD) : undefined,
 			subscription_status: isDraftParam ? SUBSCRIPTION_STATUS.DRAFT : undefined,
-			invoicing_customer_id: sanitized.invoicingCustomerId || undefined,
 			proration_behavior: subscriptionState.prorationCreateLineItems
 				? SUBSCRIPTION_PRORATION_BEHAVIOR.CREATE_PRORATIONS
 				: SUBSCRIPTION_PRORATION_BEHAVIOR.NONE,
@@ -611,10 +647,7 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 				!sanitized.sanitizedPhases && sanitized.addedSubscriptionLineItems && sanitized.addedSubscriptionLineItems.length > 0
 					? sanitized.addedSubscriptionLineItems.map(({ tempId: _tempId, ...req }) => req)
 					: undefined,
-			inheritance:
-				sanitized.inheritanceExternalIds.length > 0
-					? { external_customer_ids_to_inherit_subscription: sanitized.inheritanceExternalIds }
-					: undefined,
+			inheritance: Object.keys(inheritancePayload).length > 0 ? inheritancePayload : undefined,
 		};
 
 		setIsDraft(isDraftParam);

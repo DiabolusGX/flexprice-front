@@ -1,21 +1,31 @@
-import { Spacer, Button, Divider } from '@/components/atoms';
+import { Spacer, Button, Divider, Card, CardHeader } from '@/components/atoms';
 import CustomerApi from '@/api/CustomerApi';
 import ConnectionApi from '@/api/ConnectionApi';
+import SubscriptionApi from '@/api/SubscriptionApi';
 import { useQuery } from '@tanstack/react-query';
 import { Country } from 'country-state-city';
 import { CreateCustomerDrawer, Detail, DetailsCard, MetadataModal, SaveCardModal } from '@/components/molecules';
-import { useParams, useOutletContext } from 'react-router';
+import FlexpriceTable, { ColumnData } from '@/components/molecules/Table';
+import { useParams, useOutletContext, useNavigate } from 'react-router';
 import { Pencil, CreditCard, Share2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { getTypographyClass } from '@/lib/typography';
 import { refetchQueries } from '@/core/services/tanstack/ReactQueryProvider';
 import { logger } from '@/utils/common/Logger';
 import { CONNECTION_PROVIDER_TYPE } from '@/models/Connection';
 import { useCustomerPortalUrl } from '@/hooks/useCustomerPortalUrl';
+import { RouteNames } from '@/core/routes/Routes';
+import { CustomerResponse } from '@/types/dto';
+import { uniq } from 'lodash';
+import { Skeleton } from '@/components/ui';
 
 type ContextType = {
 	isArchived: boolean;
 };
+
+const INVOICED_SUBSCRIPTIONS_LIMIT = 500;
+
+type InvoicedSubscriberRow = CustomerResponse & { subscriptionCount: number };
 
 const filterStringMetadata = (meta: Record<string, unknown> | undefined): Record<string, string> => {
 	if (!meta) return {};
@@ -24,6 +34,7 @@ const filterStringMetadata = (meta: Record<string, unknown> | undefined): Record
 
 const CustomerInformationTab = () => {
 	const { id: customerId } = useParams();
+	const navigate = useNavigate();
 	const { isArchived } = useOutletContext<ContextType>();
 
 	const { data: customer, isLoading } = useQuery({
@@ -38,6 +49,73 @@ const CustomerInformationTab = () => {
 		queryFn: () => ConnectionApi.ListPublished(),
 		enabled: !!customerId && !isArchived,
 	});
+
+	const { data: invoicedSubsData, isLoading: isInvoicedSubsLoading } = useQuery({
+		queryKey: ['subscriptionsByInvoicingCustomer', customerId],
+		queryFn: () =>
+			SubscriptionApi.listSubscriptions({
+				invoicing_customer_ids: [customerId!],
+				limit: INVOICED_SUBSCRIPTIONS_LIMIT,
+				offset: 0,
+			}),
+		enabled: !!customerId,
+	});
+
+	const invoicedSubItems = useMemo(() => invoicedSubsData?.items ?? [], [invoicedSubsData?.items]);
+
+	const subscriptionCountBySubscriberId = useMemo(() => {
+		const m = new Map<string, number>();
+		for (const s of invoicedSubItems) {
+			if (!s.customer_id) continue;
+			m.set(s.customer_id, (m.get(s.customer_id) ?? 0) + 1);
+		}
+		return m;
+	}, [invoicedSubItems]);
+
+	const subscriberIdList = useMemo(() => {
+		const raw = uniq(invoicedSubItems.map((s) => s.customer_id).filter(Boolean) as string[]);
+		return raw.filter((id) => id !== customerId);
+	}, [invoicedSubItems, customerId]);
+
+	const sortedSubscriberIdsKey = useMemo(() => [...subscriberIdList].sort().join(','), [subscriberIdList]);
+
+	const { data: subscribersCustomersData, isLoading: isSubscribersCustomersLoading } = useQuery({
+		queryKey: ['customersByIds', sortedSubscriberIdsKey],
+		queryFn: () =>
+			CustomerApi.getCustomers({
+				customer_ids: subscriberIdList,
+				limit: Math.max(subscriberIdList.length, 1),
+				offset: 0,
+			}),
+		enabled: subscriberIdList.length > 0,
+	});
+
+	const invoicedSubscriberRows: InvoicedSubscriberRow[] = useMemo(() => {
+		const items = subscribersCustomersData?.items ?? [];
+		return items.map((c) => ({
+			...c,
+			subscriptionCount: subscriptionCountBySubscriberId.get(c.id) ?? 0,
+		}));
+	}, [subscribersCustomersData?.items, subscriptionCountBySubscriberId]);
+
+	const invoicedSubscribersColumns: ColumnData<InvoicedSubscriberRow>[] = useMemo(
+		() => [
+			{
+				title: 'Name',
+				render: (row) => <span className='font-medium text-foreground'>{row.name || '—'}</span>,
+			},
+			{
+				title: 'External ID',
+				render: (row) => <span className='text-muted-foreground'>{row.external_id || '—'}</span>,
+			},
+			// {
+			// 	title: 'Subscriptions',
+			// 	align: 'right',
+			// 	render: (row) => <span className='text-foreground'>{row.subscriptionCount}</span>,
+			// },
+		],
+		[],
+	);
 
 	const [showMetadataModal, setShowMetadataModal] = useState(false);
 	const [customerDrawerOpen, setcustomerDrawerOpen] = useState(false);
@@ -193,6 +271,26 @@ const CustomerInformationTab = () => {
 					{/* Save Card Modal */}
 					<SaveCardModal isOpen={showSaveCardModal} onOpenChange={setShowSaveCardModal} customerId={customerId!} currentUrl={currentUrl} />
 				</div>
+			)}
+
+			{customerId && invoicedSubItems.length > 0 && subscriberIdList.length > 0 && (
+				<>
+					<Spacer className='!h-8' />
+					<Card variant='notched'>
+						<CardHeader title='Child customers' titleClassName='font-semibold' />
+						{isInvoicedSubsLoading || isSubscribersCustomersLoading ? (
+							<Skeleton className='h-40 w-full mt-2' />
+						) : (
+							<FlexpriceTable
+								data={invoicedSubscriberRows}
+								columns={invoicedSubscribersColumns}
+								showEmptyRow
+								variant='no-bordered'
+								onRowClick={(row) => row?.id && navigate(`${RouteNames.customers}/${row.id}`)}
+							/>
+						)}
+					</Card>
+				</>
 			)}
 		</div>
 	);

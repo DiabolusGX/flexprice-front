@@ -1,10 +1,11 @@
-import { Check, Info } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Info, Eye } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger, Button } from '@/components/ui';
 import { formatBillingPeriodForPrice, getCurrencySymbol } from '@/utils';
 import { Link, useNavigate } from 'react-router';
 import { RouteNames } from '@/core/routes/Routes';
 import { formatAmount } from '@/components/atoms/Input/Input';
-import { PlanType } from '@/pages';
+import { PlanType } from '@/constants/planTypes';
 export interface UsageCharge {
 	amount?: string;
 	currency?: string;
@@ -42,6 +43,8 @@ export interface PricingCardProps {
 	onPurchase?: () => void;
 	className?: string;
 	showUsageCharges?: boolean;
+	/** When true, replaces the "View plan" navigation button with a disabled "Will be created" label. */
+	isPreview?: boolean;
 }
 
 const formatEntitlementValue = ({
@@ -155,6 +158,8 @@ const UsageChargeTooltip: React.FC<{ charge: UsageCharge }> = ({ charge }) => {
 	);
 };
 
+const VISIBLE_LIMIT = 3;
+
 const PricingCard: React.FC<PricingCardProps> = ({
 	id,
 	name,
@@ -163,11 +168,21 @@ const PricingCard: React.FC<PricingCardProps> = ({
 	entitlements,
 	className = '',
 	showUsageCharges = false,
+	isPreview = false,
 }) => {
 	const navigate = useNavigate();
+	const [showAllCharges, setShowAllCharges] = useState(false);
+	const [showAllEntitlements, setShowAllEntitlements] = useState(false);
+
 	const config = PRICE_DISPLAY_CONFIG[price.displayType];
 	const displayAmount = config.text || `${getCurrencySymbol(price.currency || '')}${formatAmount(price.amount || '')}`;
 	const hasUsageCharges = usageCharges.length > 0;
+
+	const visibleCharges = showAllCharges ? usageCharges : usageCharges.slice(0, VISIBLE_LIMIT);
+	const hiddenChargesCount = usageCharges.length - VISIBLE_LIMIT;
+
+	const visibleEntitlements = showAllEntitlements ? entitlements : entitlements.slice(0, VISIBLE_LIMIT);
+	const hiddenEntitlementsCount = entitlements.length - VISIBLE_LIMIT;
 
 	return (
 		<div className={`rounded-3xl border border-gray-200 p-7 bg-white hover:border-gray-300 transition-all shadow-md ${className}`}>
@@ -192,27 +207,6 @@ const PricingCard: React.FC<PricingCardProps> = ({
 							</span>
 						)}
 					</div>
-					{hasUsageCharges && showUsageCharges && (
-						<TooltipProvider delayDuration={0}>
-							<Tooltip>
-								<TooltipTrigger>
-									<Info className='h-4 w-4 text-gray-400 hover:text-gray-500 transition-colors duration-150' />
-								</TooltipTrigger>
-								<TooltipContent
-									sideOffset={5}
-									className='bg-white border border-gray-200 shadow-lg text-sm text-gray-900 px-4 py-3 rounded-lg max-w-[320px]'>
-									<div className='space-y-2'>
-										{usageCharges.map((charge, index) => (
-											<div key={index} className='flex items-center justify-between gap-4'>
-												<span className='font-medium'>{charge.meter_name}:</span>
-												<span>{formatUsageCharge(charge)}</span>
-											</div>
-										))}
-									</div>
-								</TooltipContent>
-							</Tooltip>
-						</TooltipProvider>
-					)}
 				</div>
 
 				{/* Usage Charges Section */}
@@ -220,22 +214,40 @@ const PricingCard: React.FC<PricingCardProps> = ({
 					<div className='border-t pt-4'>
 						<div className='text-sm font-medium text-gray-900 mb-2'>Usage-based charges:</div>
 						<div className='space-y-2'>
-							{usageCharges.map((charge, index) => (
-								<div key={index} className='flex items-center gap-2 text-sm text-gray-600'>
-									<span>{charge.meter_name}:</span>
-									<span>{formatUsageCharge(charge)}</span>
-									{charge.billing_model === 'TIERED' && charge.tiers && (
-										<TooltipProvider delayDuration={0}>
-											<Tooltip>
-												<TooltipTrigger>
-													<Info className='h-4 w-4 text-gray-400 hover:text-gray-500 transition-colors duration-150' />
-												</TooltipTrigger>
-												<UsageChargeTooltip charge={charge} />
-											</Tooltip>
-										</TooltipProvider>
-									)}
+							{visibleCharges.map((charge, index) => (
+								<div key={index} className='flex items-start justify-between gap-3 text-sm text-gray-600'>
+									<span className='flex-1 min-w-0 leading-snug'>{charge.meter_name}</span>
+									<div className='flex items-center gap-1.5 shrink-0'>
+										<span className='whitespace-nowrap text-right text-gray-700 font-medium'>{formatUsageCharge(charge)}</span>
+										{charge.billing_model === 'TIERED' && charge.tiers && (
+											<TooltipProvider delayDuration={0}>
+												<Tooltip>
+													<TooltipTrigger>
+														<Info className='h-4 w-4 text-gray-400 hover:text-gray-500 transition-colors duration-150' />
+													</TooltipTrigger>
+													<UsageChargeTooltip charge={charge} />
+												</Tooltip>
+											</TooltipProvider>
+										)}
+									</div>
 								</div>
 							))}
+							{!showAllCharges && hiddenChargesCount > 0 && (
+								<button
+									type='button'
+									onClick={() => setShowAllCharges(true)}
+									className='flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors mt-1'>
+									<Eye className='h-3.5 w-3.5' />+{hiddenChargesCount} more
+								</button>
+							)}
+							{showAllCharges && usageCharges.length > VISIBLE_LIMIT && (
+								<button
+									type='button'
+									onClick={() => setShowAllCharges(false)}
+									className='flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors mt-1'>
+									Show less
+								</button>
+							)}
 						</div>
 					</div>
 				)}
@@ -243,58 +255,114 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
 			{/* Purchase Button */}
 			<div className='mt-6'>
-				<Button
-					onClick={() => {
-						navigate(`${RouteNames.plan}/${id}`);
-					}}
-					className='w-full bg-gray-50 hover:bg-gray-100 text-gray-900 rounded-2xl py-3 text-sm font-medium transition-colors'
-					variant='outline'>
-					View plan
-				</Button>
+				{isPreview ? (
+					<Button
+						disabled
+						className='w-full bg-gray-50 text-gray-400 rounded-2xl py-3 text-sm font-medium cursor-not-allowed'
+						variant='outline'>
+						Will be created
+					</Button>
+				) : (
+					<Button
+						onClick={() => {
+							navigate(`${RouteNames.plan}/${id}`);
+						}}
+						className='w-full bg-gray-50 hover:bg-gray-100 text-gray-900 rounded-2xl py-3 text-sm font-medium transition-colors'
+						variant='outline'>
+						View plan
+					</Button>
+				)}
 			</div>
 
-			{/* Features List */}
-			<div className='mt-7'>
-				{entitlements.length > 0 ? (
-					<ul className='space-y-3.5'>
-						{entitlements.map((entitlement) => (
-							<li key={entitlement.id} className='flex items-center gap-3'>
-								<Check className='h-[18px] w-[18px] text-gray-600 flex-shrink-0' />
-								<span className='flex-1 text-[15px] text-gray-600 font-normal'>
-									{formatEntitlementValue({
-										type: entitlement.type,
-										value: entitlement.value,
-										name: entitlement.name,
-										usage_reset_period: entitlement.usage_reset_period || '',
-										feature_id: entitlement.feature_id,
-									})}
-								</span>
-								{entitlement.description && (
+			{/* Features List — no "Add entitlements" CTA on AI pricing preview */}
+			{(entitlements.length > 0 || !isPreview) && (
+				<div className='mt-7'>
+					{entitlements.length > 0 ? (
+						<ul className='space-y-3.5'>
+							{visibleEntitlements.map((entitlement) => (
+								<li key={entitlement.id} className='flex items-center gap-3'>
+									<Check className='h-[18px] w-[18px] text-gray-600 flex-shrink-0' />
+									<span className='flex-1 text-[15px] text-gray-600 font-normal'>
+										{formatEntitlementValue({
+											type: entitlement.type,
+											value: entitlement.value,
+											name: entitlement.name,
+											usage_reset_period: entitlement.usage_reset_period || '',
+											feature_id: entitlement.feature_id,
+										})}
+									</span>
+									{entitlement.description && (
+										<TooltipProvider delayDuration={0}>
+											<Tooltip>
+												<TooltipTrigger className='cursor-pointer'>
+													<Info className='h-4 w-4 text-gray-400 hover:text-gray-500 transition-colors duration-150' />
+												</TooltipTrigger>
+												<TooltipContent sideOffset={5} className='bg-gray-900 text-xs text-white px-3 py-1.5 rounded-lg max-w-[200px]'>
+													{entitlement.description}
+												</TooltipContent>
+											</Tooltip>
+										</TooltipProvider>
+									)}
+								</li>
+							))}
+							{!showAllEntitlements && hiddenEntitlementsCount > 0 && (
+								<li>
 									<TooltipProvider delayDuration={0}>
 										<Tooltip>
-											<TooltipTrigger className='cursor-pointer'>
-												<Info className='h-4 w-4 text-gray-400 hover:text-gray-500 transition-colors duration-150' />
+											<TooltipTrigger asChild>
+												<button
+													type='button'
+													onClick={() => setShowAllEntitlements(true)}
+													className='flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors'>
+													<Eye className='h-3.5 w-3.5' />+{hiddenEntitlementsCount} more
+												</button>
 											</TooltipTrigger>
-											<TooltipContent sideOffset={5} className='bg-gray-900 text-xs text-white px-3 py-1.5 rounded-lg max-w-[200px]'>
-												{entitlement.description}
+											<TooltipContent
+												sideOffset={5}
+												className='bg-white border border-gray-200 shadow-lg text-sm text-gray-900 px-4 py-3 rounded-lg max-w-[280px]'>
+												<div className='space-y-2'>
+													{entitlements.slice(VISIBLE_LIMIT).map((ent, i) => (
+														<div key={i} className='flex items-start gap-2 text-sm text-gray-600'>
+															<Check className='h-3.5 w-3.5 text-gray-400 mt-0.5 shrink-0' />
+															<span>
+																{formatEntitlementValue({
+																	type: ent.type,
+																	value: ent.value,
+																	name: ent.name,
+																	usage_reset_period: ent.usage_reset_period || '',
+																	feature_id: '',
+																})}
+															</span>
+														</div>
+													))}
+												</div>
 											</TooltipContent>
 										</Tooltip>
 									</TooltipProvider>
-								)}
-							</li>
-						))}
-					</ul>
-				) : (
-					<div className='text-center'>
-						{/* <p className='text-sm text-gray-500 mb-2'>No entitlements added yet</p> */}
-						<button
-							onClick={() => navigate(`${RouteNames.plan}/${id}`)}
-							className='text-sm text-gray-900 underline decoration-dashed decoration-[0.5px] decoration-muted-foreground/50 underline-offset-4 hover:text-gray-700 transition-colors'>
-							Add entitlements
-						</button>
-					</div>
-				)}
-			</div>
+								</li>
+							)}
+							{showAllEntitlements && entitlements.length > VISIBLE_LIMIT && (
+								<li>
+									<button
+										type='button'
+										onClick={() => setShowAllEntitlements(false)}
+										className='flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors'>
+										Show less
+									</button>
+								</li>
+							)}
+						</ul>
+					) : (
+						<div className='text-center'>
+							<button
+								onClick={() => navigate(`${RouteNames.plan}/${id}`)}
+								className='text-sm text-gray-900 underline decoration-dashed decoration-[0.5px] decoration-muted-foreground/50 underline-offset-4 hover:text-gray-700 transition-colors'>
+								Add entitlements
+							</button>
+						</div>
+					)}
+				</div>
+			)}
 		</div>
 	);
 };

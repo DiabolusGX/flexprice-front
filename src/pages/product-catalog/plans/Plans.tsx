@@ -24,7 +24,7 @@ import { RouteNames } from '@/core/routes/Routes';
 import formatChips from '@/utils/common/format_chips';
 import formatDate from '@/utils/common/format_date';
 import toast from 'react-hot-toast';
-import { Copy, EllipsisVertical, EyeOff, Pencil } from 'lucide-react';
+import { Copy, EllipsisVertical, EyeOff, Pencil, Sparkles } from 'lucide-react';
 import { ServerError } from '@/core/axios/types';
 import { refetchQueries } from '@/core/services/tanstack/ReactQueryProvider';
 
@@ -209,7 +209,20 @@ const PlansPage = () => {
 	);
 
 	return (
-		<Page heading='Plans' headingCTA={<AddButton onClick={handleOnAdd} />}>
+		<Page
+			heading='Plans'
+			headingCTA={
+				<div className='flex items-center gap-2'>
+					<Button
+						variant='outline'
+						onClick={() => navigate(RouteNames.pricingSetup, { state: { from: 'plans' } })}
+						className='flex items-center gap-1.5 border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700'>
+						<Sparkles className='size-4' />
+						Create with AI
+					</Button>
+					<AddButton onClick={handleOnAdd} />
+				</div>
+			}>
 			<PlanDrawer data={activePlan} open={planDrawerOpen} onOpenChange={setPlanDrawerOpen} refetchQueryKeys={['fetchPlans']} />
 			<DuplicatePlanDialog
 				planId={planToDuplicate?.id ?? ''}

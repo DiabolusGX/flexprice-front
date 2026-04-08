@@ -4,6 +4,7 @@ import { Dialog, Input, Select, Button } from '@/components/atoms';
 import { ENVIRONMENT_TYPE, Environment } from '@/models/Environment';
 import { CloneEnvironmentPayload } from '@/types/dto/Environment';
 import EnvironmentApi from '@/api/EnvironmentApi';
+import { ServerError } from '@/core/axios/types';
 import toast from 'react-hot-toast';
 import { Copy, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
 
@@ -35,6 +36,17 @@ const EnvironmentCopier: React.FC<Props> = ({ isOpen, onOpenChange, sourceEnviro
 		[],
 	);
 
+	const handleOpenChange = useCallback(
+		(open: boolean) => {
+			if (!open) {
+				setName('');
+				setType(ENVIRONMENT_TYPE.DEVELOPMENT);
+			}
+			onOpenChange(open);
+		},
+		[onOpenChange],
+	);
+
 	const { mutate: cloneEnvironment, isPending } = useMutation({
 		mutationFn: async (payload: CloneEnvironmentPayload) => {
 			if (!sourceEnvironment?.id) throw new Error('No source environment selected');
@@ -42,9 +54,7 @@ const EnvironmentCopier: React.FC<Props> = ({ isOpen, onOpenChange, sourceEnviro
 		},
 		onSuccess: async () => {
 			toast.success('Environment clone started — features and plans are being copied in the background.');
-			setName('');
-			setType(ENVIRONMENT_TYPE.DEVELOPMENT);
-			onOpenChange(false);
+			handleOpenChange(false);
 			queryClient.invalidateQueries({ queryKey: ['environments'] });
 			await onEnvironmentCloned();
 		},
@@ -63,15 +73,13 @@ const EnvironmentCopier: React.FC<Props> = ({ isOpen, onOpenChange, sourceEnviro
 	}, [name, type, cloneEnvironment]);
 
 	const handleCancel = useCallback(() => {
-		setName('');
-		setType(ENVIRONMENT_TYPE.DEVELOPMENT);
-		onOpenChange(false);
-	}, [onOpenChange]);
+		handleOpenChange(false);
+	}, [handleOpenChange]);
 
 	return (
 		<Dialog
 			isOpen={isOpen}
-			onOpenChange={onOpenChange}
+			onOpenChange={handleOpenChange}
 			title='Copy Environment'
 			className='max-w-[520px]'
 			description={

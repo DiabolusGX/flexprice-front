@@ -273,11 +273,12 @@ export async function orchestrateSetup(schema: PricingSchema, onProgress?: Progr
 				entity_id: planId,
 				type: PRICE_TYPE.FIXED,
 				price_unit_type: PRICE_UNIT_TYPE.FIAT,
+				// Backend validates BillingPeriod as required for CreatePrice.
+				billing_period: toBillingPeriod(price.billing_period),
 				billing_period_count: 1,
 				billing_model: BILLING_MODEL.FLAT_FEE,
 				billing_cadence: toBillingCadence(price.billing_period),
 				invoice_cadence: INVOICE_CADENCE.ADVANCE,
-				...(price.billing_period !== 'one_time' ? { billing_period: toBillingPeriod(price.billing_period) } : {}),
 			});
 		}
 

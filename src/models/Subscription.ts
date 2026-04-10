@@ -197,6 +197,40 @@ export enum SUBSCRIPTION_TYPE {
 	INHERITED = 'inherited',
 }
 
+/** Mid-cycle modify API: `POST /subscriptions/:id/modify/preview|execute` body `type`. */
+export enum SUBSCRIPTION_MODIFY_TYPE {
+	INHERITANCE = 'inheritance',
+	QUANTITY_CHANGE = 'quantity_change',
+}
+
+/** Type alias for DTO fields that carry {@link SUBSCRIPTION_MODIFY_TYPE}. */
+export type SubscriptionModifyType = SUBSCRIPTION_MODIFY_TYPE;
+
+/** How a line item was affected (response `changed_resources.line_items`). */
+export enum SUBSCRIPTION_MODIFY_LINE_ITEM_ACTION {
+	CREATED = 'created',
+	UPDATED = 'updated',
+	ENDED = 'ended',
+}
+
+/** How a subscription row was affected (response `changed_resources.subscriptions`). */
+export enum SUBSCRIPTION_MODIFY_SUBSCRIPTION_RESOURCE_ACTION {
+	CREATED = 'created',
+	UPDATED = 'updated',
+}
+
+/** How an invoice row was affected (response `changed_resources.invoices`). */
+export enum SUBSCRIPTION_MODIFY_INVOICE_RESOURCE_ACTION {
+	CREATED = 'created',
+	WALLET_CREDIT = 'wallet_credit',
+}
+
+/** Subscription edit page: which line-item editor is open. */
+export enum SUBSCRIPTION_LINE_ITEM_EDIT_MODE {
+	USAGE_OVERRIDE = 'usage_override',
+	FIXED_QUANTITY = 'fixed_quantity',
+}
+
 // PaymentBehavior determines how subscription payments are handled
 export enum PAYMENT_BEHAVIOR {
 	// Immediately attempts payment. If fails, subscription becomes incomplete

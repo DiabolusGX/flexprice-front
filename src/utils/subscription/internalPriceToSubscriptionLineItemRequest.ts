@@ -1,4 +1,4 @@
-import { BILLING_CADENCE, BILLING_MODEL, BILLING_PERIOD, INVOICE_CADENCE, PRICE_TYPE, TIER_MODE, PRICE_UNIT_TYPE } from '@/models';
+import { BILLING_MODEL, BILLING_PERIOD, INVOICE_CADENCE, PRICE_TYPE, TIER_MODE, PRICE_UNIT_TYPE } from '@/models';
 import type { CreateSubscriptionLineItemRequest, SubscriptionPriceCreateRequest } from '@/types/dto/Subscription';
 import type { InternalPrice } from '@/components/organisms/PlanForm/SetupChargesSection';
 import { PriceInternalState } from '@/components/organisms/PlanForm/UsagePricingForm';
@@ -7,7 +7,7 @@ import { PriceInternalState } from '@/components/organisms/PlanForm/UsagePricing
 export type AddedSubscriptionLineItemLike = CreateSubscriptionLineItemRequest & { tempId: string };
 
 /**
- * Converts form state (InternalPrice from RecurringChargesForm or UsagePricingForm) into
+ * Converts form state (InternalPrice from fixed-charge RecurringChargesForm or UsagePricingForm) into
  * CreateSubscriptionLineItemRequest for subscription-level line items.
  */
 export function internalPriceToSubscriptionLineItemRequest(
@@ -23,7 +23,6 @@ export function internalPriceToSubscriptionLineItemRequest(
 			billing_period: (partial.billing_period as BILLING_PERIOD) ?? BILLING_PERIOD.MONTHLY,
 			billing_period_count: partial.billing_period_count ?? 1,
 			billing_model: (partial.billing_model as BILLING_MODEL) ?? BILLING_MODEL.FLAT_FEE,
-			billing_cadence: partial.billing_cadence ?? BILLING_CADENCE.RECURRING,
 			invoice_cadence: (partial.invoice_cadence as INVOICE_CADENCE) ?? INVOICE_CADENCE.ARREAR,
 			display_name: partial.display_name,
 			start_date: partial.start_date,
@@ -45,14 +44,13 @@ export function internalPriceToSubscriptionLineItemRequest(
 		};
 	}
 
-	// FIXED (recurring)
+	// FIXED (fixed charge)
 	const price: SubscriptionPriceCreateRequest = {
 		type: partial.type ?? PRICE_TYPE.FIXED,
 		price_unit_type: partial.price_unit_type ?? PRICE_UNIT_TYPE.FIAT,
 		billing_period: (partial.billing_period as BILLING_PERIOD) ?? BILLING_PERIOD.MONTHLY,
 		billing_period_count: partial.billing_period_count ?? 1,
 		billing_model: (partial.billing_model as BILLING_MODEL) ?? BILLING_MODEL.FLAT_FEE,
-		billing_cadence: partial.billing_cadence ?? BILLING_CADENCE.RECURRING,
 		invoice_cadence: (partial.invoice_cadence as INVOICE_CADENCE) ?? INVOICE_CADENCE.ARREAR,
 		amount: partial.amount,
 		display_name: partial.display_name,
@@ -85,7 +83,7 @@ export interface SubscriptionLineItemToInternalPriceDefaults {
 
 /**
  * Converts an added subscription line item back to form state (InternalPrice).
- * Used when editing an existing subscription-level charge so RecurringChargesForm or UsagePricingForm can be pre-filled.
+ * Used when editing an existing subscription-level charge so RecurringChargesForm (fixed) or UsagePricingForm can be pre-filled.
  */
 export function subscriptionLineItemToInternalPrice(
 	item: AddedSubscriptionLineItemLike,
@@ -100,7 +98,7 @@ export function subscriptionLineItemToInternalPrice(
 			internal_state: PriceInternalState.EDIT,
 		};
 	}
-	const isUsage = (p.type as string) === PRICE_TYPE.USAGE;
+	const isUsage = p.type === PRICE_TYPE.USAGE;
 	const isCustom = p.price_unit_type === PRICE_UNIT_TYPE.CUSTOM;
 	const base: Partial<InternalPrice> = {
 		display_name: item.display_name ?? p.display_name ?? '',
@@ -108,7 +106,6 @@ export function subscriptionLineItemToInternalPrice(
 		billing_period_count: p.billing_period_count ?? 1,
 		invoice_cadence: (p.invoice_cadence as INVOICE_CADENCE) ?? INVOICE_CADENCE.ARREAR,
 		billing_model: (p.billing_model as BILLING_MODEL) ?? BILLING_MODEL.FLAT_FEE,
-		billing_cadence: (p.billing_cadence as BILLING_CADENCE) ?? BILLING_CADENCE.RECURRING,
 		type: (p.type as PRICE_TYPE) ?? PRICE_TYPE.FIXED,
 		min_quantity: item.quantity ?? p.min_quantity ?? 1,
 		start_date: item.start_date ?? p.start_date,

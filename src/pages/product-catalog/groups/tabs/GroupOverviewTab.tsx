@@ -265,7 +265,7 @@ const GroupOverviewTab = () => {
 				operators: [FilterOperator.IN, FilterOperator.NOT_IN],
 				dataType: DataType.ARRAY,
 				options: [
-					{ value: PRICE_TYPE.FIXED, label: 'Recurring' },
+					{ value: PRICE_TYPE.FIXED, label: 'Fixed charge' },
 					{ value: PRICE_TYPE.USAGE, label: 'Usage Based' },
 				],
 			},

@@ -14,7 +14,7 @@ interface CommitmentConfigDialogProps {
 	price: Price;
 	onSave: (priceId: string, config: LineItemCommitmentConfig | null) => void;
 	currentConfig: LineItemCommitmentConfig | undefined;
-	billingPeriod?: string;
+	billingPeriod?: BILLING_PERIOD;
 }
 
 const commitmentTypeOptions = [

@@ -12,7 +12,7 @@ import VolumeTieredPricingForm from './VolumeTieredPricingForm';
 import { InternalPrice } from './SetupChargesSection';
 import UsageChargePreview from './UsageChargePreview';
 import { toast } from 'react-hot-toast';
-import { BILLING_CADENCE, INVOICE_CADENCE } from '@/models/Invoice';
+import { INVOICE_CADENCE } from '@/models/Invoice';
 import { BILLING_MODEL, TIER_MODE, PRICE_ENTITY_TYPE, PRICE_UNIT_TYPE } from '@/models/Price';
 import { BILLING_PERIOD, PRICE_TYPE } from '@/models/Price';
 import { useQuery } from '@tanstack/react-query';
@@ -381,7 +381,6 @@ const UsagePricingForm: FC<Props> = ({
 			billing_model: billingModel as BILLING_MODEL,
 			type: PRICE_TYPE.USAGE,
 			billing_period_count: 1,
-			billing_cadence: 'RECURRING' as BILLING_CADENCE,
 			invoice_cadence: INVOICE_CADENCE.ARREAR,
 			entity_type: entityType,
 			entity_id: entityId || '',

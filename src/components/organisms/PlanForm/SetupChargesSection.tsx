@@ -9,7 +9,7 @@ import { BILLING_PERIOD, currencyOptions } from '@/constants/constants';
 import RecurringChargesForm from './RecurringChargesForm';
 import UsagePricingForm, { PriceInternalState } from './UsagePricingForm';
 import { Plus } from 'lucide-react';
-import { BILLING_CADENCE, INVOICE_CADENCE } from '@/models/Invoice';
+import { INVOICE_CADENCE } from '@/models/Invoice';
 import { PRICE_ENTITY_TYPE } from '@/models/Price';
 
 interface Props {
@@ -29,7 +29,7 @@ enum SubscriptionType {
 export const subscriptionTypeOptions = [
 	{
 		value: SubscriptionType.FIXED,
-		label: 'Recurring',
+		label: 'Fixed charge',
 		icon: IoRepeat,
 		description: 'Fixed pricing billed on a set schedule.',
 	},
@@ -87,7 +87,6 @@ const SetupChargesSection: React.FC<Props> = ({ plan, initialPrices, setPlanFiel
 		billing_period_count: 1,
 		invoice_cadence: INVOICE_CADENCE.ARREAR,
 		billing_model: type === SubscriptionType.FIXED ? BILLING_MODEL.FLAT_FEE : undefined,
-		billing_cadence: BILLING_CADENCE.RECURRING,
 		internal_state: PriceInternalState.NEW,
 	});
 
@@ -159,7 +158,7 @@ const SetupChargesSection: React.FC<Props> = ({ plan, initialPrices, setPlanFiel
 			{/* Fixed Price Forms */}
 			{recurringCharges.length > 0 && (
 				<div>
-					<FormHeader title='Recurring Charges' variant='form-component-title' />
+					<FormHeader title='Fixed charges' variant='form-component-title' />
 					{recurringCharges.map((price, index) => (
 						<RecurringChargesForm
 							key={index}
@@ -278,9 +277,7 @@ const SetupChargesSection: React.FC<Props> = ({ plan, initialPrices, setPlanFiel
 			{/* Add Charges Buttons */}
 			{showAddButtons && (
 				<div className='mt-6'>
-					{canAddFixedPrices && (
-						<AddChargesButton onClick={() => handleAddNewPrice(SubscriptionType.FIXED)} label='Add Recurring Charges' />
-					)}
+					{canAddFixedPrices && <AddChargesButton onClick={() => handleAddNewPrice(SubscriptionType.FIXED)} label='Add fixed charge' />}
 					{canAddUsagePrices && (
 						<>
 							{canAddFixedPrices && <Spacer height='8px' />}

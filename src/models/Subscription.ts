@@ -4,7 +4,7 @@ import { BILLING_PERIOD } from '@/constants/constants';
 import { Plan } from './Plan';
 import { CreditGrant } from './CreditGrant';
 import { BaseModel, ENTITY_STATUS, Metadata } from './base';
-import { Price } from './Price';
+import { Price, PRICE_TYPE } from './Price';
 
 export interface SubscriptionCommitmentInfo {
 	enable_true_up?: boolean;
@@ -26,7 +26,7 @@ export interface LineItem extends BaseModel {
 	readonly display_name: string;
 	readonly plan_display_name: string;
 	readonly meter_display_name: string;
-	readonly price_type: string;
+	readonly price_type: PRICE_TYPE;
 	readonly billing_period: string;
 	readonly currency: string;
 	readonly quantity: number;
@@ -90,7 +90,7 @@ export interface Subscription extends BaseModel {
 	readonly cancel_at_period_end: boolean;
 	readonly trial_start: string;
 	readonly trial_end: string;
-	readonly billing_cadence: BILLING_CADENCE;
+	readonly billing_cadence?: BILLING_CADENCE;
 	readonly billing_period: BILLING_PERIOD;
 	readonly billing_period_count: number;
 	readonly invoice_cadence: INVOICE_CADENCE;

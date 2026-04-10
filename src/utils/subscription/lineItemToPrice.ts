@@ -1,15 +1,6 @@
 import type { LineItem } from '@/models/Subscription';
 import type { Price } from '@/models/Price';
-import {
-	BILLING_MODEL,
-	TIER_MODE,
-	PRICE_ENTITY_TYPE,
-	PRICE_TYPE,
-	PRICE_UNIT_TYPE,
-	BILLING_PERIOD,
-	BILLING_CADENCE,
-	ENTITY_STATUS,
-} from '@/models';
+import { BILLING_MODEL, TIER_MODE, PRICE_ENTITY_TYPE, PRICE_TYPE, PRICE_UNIT_TYPE, BILLING_PERIOD, ENTITY_STATUS } from '@/models';
 
 const BILLING_PERIOD_VALUES = new Set<string>(Object.values(BILLING_PERIOD));
 const PRICE_TYPE_VALUES = new Set<string>(Object.values(PRICE_TYPE));
@@ -52,7 +43,7 @@ export function lineItemToPrice(lineItem: LineItem): Price {
 		id: lineItem.price_id,
 		amount: lineItem.quantity?.toString() || '0',
 		currency: lineItem.currency,
-		billing_model: lineItem.price_type as BILLING_MODEL,
+		billing_model: (lineItem.price_type as unknown as BILLING_MODEL) ?? BILLING_MODEL.FLAT_FEE,
 		tier_mode: TIER_MODE.VOLUME,
 		tiers: [],
 		transform_quantity: { divide_by: 1 },
@@ -72,7 +63,6 @@ export function lineItemToPrice(lineItem: LineItem): Price {
 		metadata: lineItem.metadata,
 		billing_period: billingPeriod,
 		billing_period_count: 1,
-		billing_cadence: BILLING_CADENCE.RECURRING,
 		filter_values: {},
 		unit_amount: lineItem.quantity?.toString() || '0',
 		flat_amount: '0',

@@ -210,13 +210,7 @@ export type {
 	CreditNoteLineItem,
 } from './CreditNote';
 
-export type {
-	UpdateEnvironmentPayload,
-	CreateEnvironmentPayload,
-	ListEnvironmentResponse,
-	CloneEnvironmentPayload,
-	CloneEnvironmentResponse,
-} from './Environment';
+export type { UpdateEnvironmentPayload, CreateEnvironmentPayload, ListEnvironmentResponse } from './Environment';
 
 export { CREDIT_NOTE_STATUS, CREDIT_NOTE_REASON, CREDIT_NOTE_TYPE } from '@/models';
 

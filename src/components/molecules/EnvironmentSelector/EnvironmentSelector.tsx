@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import React, { useState } from 'react';
 import { Skeleton } from '@/components/ui';
-import { Blocks, Rocket, Server, ChevronsUpDown, Plus } from 'lucide-react';
+import { Blocks, Rocket, Server, ChevronsUpDown, Plus, Copy } from 'lucide-react';
 import { useGlobalLoading } from '@/core/services/tanstack/ReactQueryProvider';
 import useUser from '@/hooks/useUser';
 import { Select, SelectContent, useSidebar } from '@/components/ui';
@@ -13,6 +13,7 @@ import { useEnvironment } from '@/hooks/useEnvironment';
 import { useRestrictedEnvs, EnvRestrictionState } from '@/hooks/useRestrictedEnvs';
 import { Button } from '@/components/atoms';
 import EnvironmentCreator from '../EnvironmentCreator/EnvironmentCreator';
+import EnvironmentCopier from '../EnvironmentCopier/EnvironmentCopier';
 import ContactUsDialog from '../ContactUsDialog/ContactUsDialog';
 import { ENVIRONMENT_TYPE } from '@/models/Environment';
 
@@ -72,6 +73,7 @@ const EnvironmentSelector: React.FC<Props> = ({ disabled = false, className }) =
 
 	const [isOpen, setIsOpen] = useState(false);
 	const [isCreatorOpen, setIsCreatorOpen] = useState(false);
+	const [isCopierOpen, setIsCopierOpen] = useState(false);
 	const [isSuspendedDialogOpen, setIsSuspendedDialogOpen] = useState(false);
 
 	if (loading)
@@ -167,7 +169,7 @@ const EnvironmentSelector: React.FC<Props> = ({ disabled = false, className }) =
 							</div>
 						</SelectItem>
 					))}
-					<div className='flex items-center gap-2 m-2 text-muted-foreground'>
+					<div className='flex flex-col gap-1.5 m-2 text-muted-foreground'>
 						<Button
 							onClick={() => {
 								setIsOpen(false);
@@ -179,6 +181,18 @@ const EnvironmentSelector: React.FC<Props> = ({ disabled = false, className }) =
 							className='w-full text-center rounded-[6px] justify-center items-center'>
 							<Plus className='h-4 w-4' />
 							Add Environment
+						</Button>
+						<Button
+							onClick={() => {
+								setIsOpen(false);
+								setIsCopierOpen(true);
+							}}
+							key='copy'
+							size='sm'
+							variant='outline'
+							className='w-full text-center rounded-[6px] justify-center items-center'>
+							<Copy className='h-4 w-4' />
+							Copy Environment
 						</Button>
 					</div>
 				</SelectContent>
@@ -192,6 +206,15 @@ const EnvironmentSelector: React.FC<Props> = ({ disabled = false, className }) =
 					if (environmentId) {
 						handleChange(environmentId);
 					}
+				}}
+			/>
+
+			<EnvironmentCopier
+				isOpen={isCopierOpen}
+				onOpenChange={setIsCopierOpen}
+				sourceEnvironment={currentEnvironment}
+				onEnvironmentCloned={async () => {
+					await refetchEnvironments();
 				}}
 			/>
 

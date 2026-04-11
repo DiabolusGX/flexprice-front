@@ -298,6 +298,7 @@ const FeatureDetailsSection = ({
 		(name: string) => {
 			onUpdateFeature({
 				name,
+				lookup_key: 'feat-' + name.replace(/\s/g, '-').toLowerCase(),
 				meter: data.meter ? { ...data.meter, name } : undefined,
 			});
 		},

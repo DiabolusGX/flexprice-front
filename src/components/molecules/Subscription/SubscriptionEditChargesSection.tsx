@@ -71,7 +71,6 @@ const SubscriptionEditChargesSection: FC<SubscriptionEditChargesSectionProps> = 
 						onTerminate={onTerminateLineItem}
 						hideCardWrapper={true}
 						commitmentInfo={commitmentInfo}
-						paginationPrefix='sub_line_items'
 					/>
 				</Card>
 			)}
@@ -91,7 +90,6 @@ const SubscriptionEditChargesSection: FC<SubscriptionEditChargesSectionProps> = 
 					onEdit={onEditLineItem}
 					onTerminate={onTerminateLineItem}
 					commitmentInfo={commitmentInfo}
-					paginationPrefix='sub_line_items'
 				/>
 			)}
 
@@ -119,7 +117,6 @@ const SubscriptionEditChargesSection: FC<SubscriptionEditChargesSectionProps> = 
 									onTerminate={onTerminateLineItem}
 									hideCardWrapper={true}
 									commitmentInfo={commitmentInfo}
-									paginationPrefix={`sub_line_items_phase_${index}`}
 								/>
 							</Card>
 						);

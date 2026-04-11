@@ -1,4 +1,4 @@
-import { Card, CardHeader, NoDataCard, Chip, Tooltip, ShortPagination } from '@/components/atoms';
+import { Card, CardHeader, NoDataCard, Chip, Tooltip } from '@/components/atoms';
 import type { SubscriptionCommitmentInfo } from '@/models/Subscription';
 import { ChargeValueCell, ColumnData, FlexpriceTable, TerminateLineItemModal, DropdownMenu } from '@/components/molecules';
 import { PriceTooltip } from '@/components/molecules/PriceTooltip';
@@ -9,7 +9,6 @@ import { ENTITY_STATUS } from '@/models/base';
 import { formatBillingPeriodForDisplay, getCurrencySymbol, getPriceTypeLabel } from '@/utils/common/helper_functions';
 import { PRICE_ENTITY_TYPE, PRICE_TYPE, PRICE_STATUS } from '@/models/Price';
 import { formatDateTimeWithSecondsAndTimezone } from '@/utils/common/format_date';
-import usePagination, { PAGINATION_PREFIX } from '@/hooks/usePagination';
 
 interface Props {
 	data: LineItem[];
@@ -18,7 +17,6 @@ interface Props {
 	isLoading?: boolean;
 	hideCardWrapper?: boolean;
 	commitmentInfo?: SubscriptionCommitmentInfo;
-	paginationPrefix?: string;
 }
 
 interface LineItemWithStatus extends LineItem {
@@ -228,20 +226,9 @@ const formatCommitmentTooltip = (info: SubscriptionCommitmentInfo): React.ReactN
 	return <div className='flex flex-col gap-2'>{rows}</div>;
 };
 
-const PAGE_SIZE = 10;
-
-const SubscriptionLineItemTable: FC<Props> = ({
-	data,
-	onEdit,
-	onTerminate,
-	isLoading,
-	hideCardWrapper = false,
-	commitmentInfo,
-	paginationPrefix = PAGINATION_PREFIX.SUBSCRIPTION_LINE_ITEMS,
-}) => {
+const SubscriptionLineItemTable: FC<Props> = ({ data, onEdit, onTerminate, isLoading, hideCardWrapper = false, commitmentInfo }) => {
 	const [showTerminateModal, setShowTerminateModal] = useState(false);
 	const [selectedLineItem, setSelectedLineItem] = useState<LineItem | null>(null);
-	const { page, limit } = usePagination({ initialLimit: PAGE_SIZE, prefix: paginationPrefix });
 
 	const handleEditClick = useCallback(
 		(lineItem: LineItem) => {
@@ -295,11 +282,6 @@ const SubscriptionLineItemTable: FC<Props> = ({
 
 		return lineItemsWithStatus.sort((a, b) => statusOrder[a.precomputedStatus] - statusOrder[b.precomputedStatus]);
 	}, [data]);
-
-	const paginatedLineItems = useMemo(() => {
-		const start = (page - 1) * limit;
-		return processedLineItems.slice(start, start + limit);
-	}, [processedLineItems, page, limit]);
 
 	const hasMultipleEntityTypes = useMemo(() => {
 		if (!data?.length) return false;
@@ -448,15 +430,11 @@ const SubscriptionLineItemTable: FC<Props> = ({
 			)}
 
 			{hideCardWrapper ? (
-				<>
-					<FlexpriceTable showEmptyRow={false} data={paginatedLineItems} columns={columns} />
-					<ShortPagination totalItems={processedLineItems.length} pageSize={PAGE_SIZE} prefix={paginationPrefix} />
-				</>
+				<FlexpriceTable showEmptyRow={false} data={processedLineItems} columns={columns} />
 			) : (
 				<Card variant='notched'>
 					<CardHeader title='Charges' />
-					<FlexpriceTable showEmptyRow={false} data={paginatedLineItems} columns={columns} />
-					<ShortPagination totalItems={processedLineItems.length} pageSize={PAGE_SIZE} prefix={paginationPrefix} />
+					<FlexpriceTable showEmptyRow={false} data={processedLineItems} columns={columns} />
 				</Card>
 			)}
 		</>

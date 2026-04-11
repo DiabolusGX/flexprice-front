@@ -14,7 +14,6 @@ import { RouteNames } from '@/core/routes/Routes';
 import { getApiErrorMessage } from '@/core/axios/types';
 
 import {
-	BILLING_CADENCE,
 	SubscriptionPhase,
 	Coupon,
 	Customer,
@@ -49,6 +48,11 @@ import { extractSubscriptionBoundaries, extractFirstPhaseData } from '@/utils/su
 import { useBreadcrumbsStore } from '@/store/useBreadcrumbsStore';
 import { useEnvironment } from '@/hooks/useEnvironment';
 import { usePlanPrices } from '@/hooks/usePlanPrices';
+import {
+	filterPlanPricesForSubscriptionCharges,
+	isOneTimePlanPrice,
+	uniqueRecurringBillingPeriodsFromPrices,
+} from '@/utils/subscription/planPricesForSubscriptionUi';
 
 type Params = {
 	id: string;
@@ -334,14 +338,15 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 	// Sync plan details from usePlanDetails hook to state
 	useEffect(() => {
 		if (planDetails && prices) {
-			const billingPeriods = [...new Set(prices.items?.map((price) => price.billing_period) || [])];
+			const items = prices.items || [];
+			const billingPeriods = uniqueRecurringBillingPeriodsFromPrices(items);
 			const billingPeriodOptions = billingPeriods.map((period) => ({
 				label: toSentenceCase(period as string),
 				value: period,
 			}));
 
 			setSubscriptionState((prev) => {
-				// Determine the billing period to use
+				// Determine the billing period to use (recurring only; ONETIME is never selectable)
 				const currentBillingPeriod = prev.billingPeriod;
 				const isValidBillingPeriod =
 					currentBillingPeriod && billingPeriods.some((bp) => (bp as string).toLowerCase() === currentBillingPeriod.toLowerCase());
@@ -349,14 +354,13 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 					? currentBillingPeriod
 					: ((billingPeriods[0] as string)?.toLowerCase() as BILLING_PERIOD) || currentBillingPeriod;
 
-				// Determine the currency to use
-				const availableCurrencies = [
-					...new Set(
-						prices.items
-							?.filter((price) => price.billing_period.toLowerCase() === selectedBillingPeriod.toLowerCase())
-							.map((price) => price.currency) || [],
-					),
-				];
+				// Currencies for the selected recurring period; if none (e.g. plan is one-time only), use one-time price currencies
+				const recurringForPeriod = items.filter(
+					(price) => !isOneTimePlanPrice(price) && price.billing_period.toLowerCase() === selectedBillingPeriod.toLowerCase(),
+				);
+				const currencySource = recurringForPeriod.length > 0 ? recurringForPeriod : items.filter(isOneTimePlanPrice);
+				const availableCurrencies = [...new Set(currencySource.map((price) => price.currency))];
+
 				const currentCurrency = prev.currency;
 				const isValidCurrency = currentCurrency && availableCurrencies.includes(currentCurrency);
 				const selectedCurrency = isValidCurrency ? currentCurrency : availableCurrencies[0] || currentCurrency;
@@ -489,14 +493,9 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 			finalStartDate = new Date(startDate).toISOString();
 			finalEndDate = endDate ? new Date(endDate).toISOString() : undefined;
 
-			// Get current prices for the selected billing period and currency
-			const currentPrices =
-				prices?.items?.filter(
-					(price) =>
-						price.billing_period.toLowerCase() === billingPeriod.toLowerCase() &&
-						price.currency.toLowerCase() === currency.toLowerCase() &&
-						isPriceActive(price),
-				) || [];
+			// Plan prices for selected recurring period + currency, plus all one-time plan prices in that currency
+			const activeItems = prices?.items?.filter((price) => isPriceActive(price)) || [];
+			const currentPrices = filterPlanPricesForSubscriptionCharges(activeItems, billingPeriod, currency);
 
 			// Convert price overrides to line item overrides
 			// Note: getLineItemOverrides automatically excludes quantity for USAGE type prices
@@ -604,7 +603,6 @@ const CreateCustomerSubscriptionPage: React.FC = () => {
 
 		// Build API payload
 		const payload: CreateSubscriptionRequest = {
-			billing_cadence: BILLING_CADENCE.RECURRING,
 			billing_period: sanitized.billingPeriod.toUpperCase() as BILLING_PERIOD,
 			billing_period_count: 1,
 			billing_cycle: sanitized.billingCycle,

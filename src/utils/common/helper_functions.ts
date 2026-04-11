@@ -56,6 +56,8 @@ export const formatBillingPeriodForPrice = (billingPeriod: string) => {
 			return 'quarter';
 		case BILLING_PERIOD.HALF_YEARLY:
 			return 'half year';
+		case BILLING_PERIOD.ONETIME:
+			return 'one-time';
 		default:
 			return '--';
 	}
@@ -80,15 +82,18 @@ export const formatBillingPeriodForDisplay = (billingPeriod: string) => {
 			return 'Quarterly';
 		case BILLING_PERIOD.HALF_YEARLY:
 			return 'Half Yearly';
+		case BILLING_PERIOD.ONETIME:
+			return 'One-time';
 		default:
 			return '--';
 	}
 };
 
-export const getPriceTypeLabel = (type: string): string => {
-	switch (type.toUpperCase()) {
+export const getPriceTypeLabel = (type: string | PRICE_TYPE | undefined): string => {
+	if (type == null || type === '') return '--';
+	switch (String(type).toUpperCase()) {
 		case PRICE_TYPE.FIXED:
-			return 'Recurring';
+			return 'Fixed charge';
 		case PRICE_TYPE.USAGE:
 			return 'Usage Based';
 		default:
@@ -126,15 +131,16 @@ export const formatEntityType = (entityType: string): string => {
 	}
 };
 
-export const getTotalPayableText = (recurringCharges: Price[], usageCharges: Price[], recurringTotal: number) => {
+/** @param fixedCharges - FIXED-type prices (fixed charges) */
+export const getTotalPayableText = (fixedCharges: Price[], usageCharges: Price[], recurringTotal: number) => {
 	let text = '';
 
-	if (recurringCharges.length > 0) {
-		text += `${getCurrencySymbol(recurringCharges[0].currency)}${recurringTotal}`;
+	if (fixedCharges.length > 0) {
+		text += `${getCurrencySymbol(fixedCharges[0].currency)}${recurringTotal}`;
 	}
 
 	if (usageCharges.length > 0) {
-		if (recurringCharges.length > 0) {
+		if (fixedCharges.length > 0) {
 			text += ' + Usage';
 		} else {
 			text += 'Depends on usage';
@@ -144,15 +150,16 @@ export const getTotalPayableText = (recurringCharges: Price[], usageCharges: Pri
 	return text;
 };
 
-export const getTotalPayableInfo = (recurringCharges: Price[], usageCharges: Price[], recurringTotal: number) => {
+/** @param fixedCharges - FIXED-type prices (fixed charges) */
+export const getTotalPayableInfo = (fixedCharges: Price[], usageCharges: Price[], recurringTotal: number) => {
 	let text = '';
 
-	if (recurringCharges.length > 0) {
-		text += `${getCurrencySymbol(recurringCharges[0].currency)}${recurringTotal}`;
+	if (fixedCharges.length > 0) {
+		text += `${getCurrencySymbol(fixedCharges[0].currency)}${recurringTotal}`;
 	}
 
 	if (usageCharges.length > 0) {
-		if (recurringCharges.length > 0) {
+		if (fixedCharges.length > 0) {
 			text += ' + Usage';
 		} else {
 			text += 'depending on usage';
@@ -203,22 +210,22 @@ export const calculateTotalCouponDiscount = (
 
 /**
  * Gets the total payable text including coupon discounts
- * @param recurringCharges - Array of recurring charges
+ * @param fixedCharges - Array of fixed (FIXED type) prices
  * @param usageCharges - Array of usage charges
- * @param recurringTotal - Total recurring amount
+ * @param recurringTotal - Total fixed-charge amount
  * @param coupons - Array of coupons to apply
  * @returns Formatted text showing total with discounts
  */
 export const getTotalPayableTextWithCoupons = (
-	recurringCharges: Price[],
+	fixedCharges: Price[],
 	usageCharges: Price[],
 	recurringTotal: number,
 	coupons: { type: string; amount_off?: string; percentage_off?: string }[] = [],
 ) => {
 	let text = '';
 
-	if (recurringCharges.length > 0) {
-		const currency = recurringCharges[0].currency;
+	if (fixedCharges.length > 0) {
+		const currency = fixedCharges[0].currency;
 		const totalDiscount = calculateTotalCouponDiscount(coupons, recurringTotal);
 		const finalAmount = Math.max(0, recurringTotal - totalDiscount);
 
@@ -231,7 +238,7 @@ export const getTotalPayableTextWithCoupons = (
 	}
 
 	if (usageCharges.length > 0) {
-		if (recurringCharges.length > 0) {
+		if (fixedCharges.length > 0) {
 			text += ' + Usage';
 		} else {
 			text += 'Depends on usage';

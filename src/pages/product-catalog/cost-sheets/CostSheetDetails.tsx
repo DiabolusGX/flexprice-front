@@ -36,6 +36,8 @@ const formatBillingPeriod = (billingPeriod: string) => {
 			return 'Quarterly';
 		case BILLING_PERIOD.HALF_YEARLY:
 			return 'Half Yearly';
+		case BILLING_PERIOD.ONETIME:
+			return 'One-time';
 		default:
 			return '--';
 	}

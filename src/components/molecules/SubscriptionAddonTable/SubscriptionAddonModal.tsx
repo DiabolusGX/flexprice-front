@@ -9,9 +9,11 @@ import { toSentenceCase } from '@/utils/common/helper_functions';
 import { ADDON_TYPE } from '@/models/Addon';
 import { ColumnData, FlexpriceTable } from '@/components/molecules';
 import { Price, PRICE_TYPE } from '@/models/Price';
+import { BILLING_PERIOD } from '@/constants/constants';
 import { LineItemCommitmentConfig, LineItemCommitmentsMap } from '@/types/dto/LineItemCommitmentConfig';
 import CommitmentConfigDialog from '@/components/molecules/CommitmentConfigDialog';
 import { formatCommitmentSummary } from '@/utils/common/commitment_helpers';
+import { isOneTimePlanPrice } from '@/utils/subscription/planPricesForSubscriptionUi';
 interface Props {
 	data?: AddAddonToSubscriptionRequest;
 	currentAddons: AddAddonToSubscriptionRequest[];
@@ -20,7 +22,7 @@ interface Props {
 	onSave: (addon: AddAddonToSubscriptionRequest) => void;
 	onCancel: () => void;
 	getEmptyAddon: () => Partial<AddAddonToSubscriptionRequest>;
-	billingPeriod?: string;
+	billingPeriod?: BILLING_PERIOD;
 	currency?: string;
 }
 
@@ -159,11 +161,12 @@ const SubscriptionAddonModal: React.FC<Props> = ({
 	const selectedAddonPrices = useMemo(() => {
 		const prices: Price[] = (selectedAddonDetails?.prices as Price[]) || [];
 		let filtered = prices;
-		if (billingPeriod) {
-			filtered = filtered.filter((p) => p.billing_period?.toLowerCase() === billingPeriod.toLowerCase());
-		}
 		if (currency) {
 			filtered = filtered.filter((p) => p.currency?.toLowerCase() === currency.toLowerCase());
+		}
+		if (billingPeriod) {
+			const periodKey = billingPeriod.toUpperCase();
+			filtered = filtered.filter((p) => isOneTimePlanPrice(p) || p.billing_period?.toUpperCase() === periodKey);
 		}
 		return filtered;
 	}, [selectedAddonDetails, billingPeriod, currency]);

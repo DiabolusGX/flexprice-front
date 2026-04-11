@@ -8,6 +8,7 @@ import AddonApi from '@/api/AddonApi';
 import { ADDON_TYPE } from '@/models/Addon';
 import { getTotalPayableTextWithCoupons, toSentenceCase } from '@/utils/common/helper_functions';
 import { Price, PRICE_TYPE } from '@/models/Price';
+import { BILLING_PERIOD } from '@/constants/constants';
 import { getCurrentPriceAmount, ExtendedPriceOverride } from '@/utils/common/price_override_helpers';
 import { Coupon } from '@/models/Coupon';
 
@@ -18,7 +19,7 @@ interface Props {
 	getEmptyAddon: () => Partial<AddAddonToSubscriptionRequest>;
 	priceOverrides?: Record<string, ExtendedPriceOverride>;
 	coupons?: Coupon[];
-	billingPeriod?: string;
+	billingPeriod?: BILLING_PERIOD;
 	currency?: string;
 }
 const getAddonTypeChip = (type: string) => {

@@ -40,6 +40,11 @@ import { Coupon } from '@/models/Coupon';
 import { InternalCreditGrantRequest, creditGrantToInternal } from '@/types/dto/CreditGrant';
 import { uniqueId } from 'lodash';
 import { generateExpandQueryParams } from '@/utils/common/api_helper';
+import {
+	filterPlanPricesForSubscriptionCharges,
+	isOneTimePlanPrice,
+	uniqueRecurringBillingPeriodsFromPrices,
+} from '@/utils/subscription/planPricesForSubscriptionUi';
 
 // Helper components
 const BillingCycleSelector = ({
@@ -112,13 +117,11 @@ const SubscriptionForm = ({
 	// Fetch plan prices via shared hook (same cache key + canonical active filter as CreateCustomerSubscriptionPage)
 	const { data: selectedPlanPrices } = usePlanPrices(state.selectedPlan);
 
-	// Current prices for subscription-level and phase management (hook already returns only active prices)
-	const currentPrices =
-		selectedPlanPrices?.items?.filter(
-			(price) =>
-				price.billing_period.toLowerCase() === state.billingPeriod.toLowerCase() &&
-				price.currency.toLowerCase() === state.currency.toLowerCase(),
-		) || [];
+	// Current prices for subscription-level and phase management (hook already returns only active prices).
+	// Includes plan one-time (ONETIME) prices for the selected currency regardless of recurring billing period.
+	const currentPrices = selectedPlanPrices?.items
+		? filterPlanPricesForSubscriptionCharges(selectedPlanPrices.items, state.billingPeriod, state.currency)
+		: [];
 
 	// Price overrides functionality for subscription-level
 	const { overriddenPrices, overridePrice, resetOverride } = usePriceOverrides(currentPrices);
@@ -161,7 +164,7 @@ const SubscriptionForm = ({
 	// Get available billing periods and currencies from selectedPlanPrices
 	const availableBillingPeriods = useMemo(() => {
 		if (!selectedPlanPrices?.items) return [];
-		const periods = [...new Set(selectedPlanPrices.items.map((price) => price.billing_period))];
+		const periods = uniqueRecurringBillingPeriodsFromPrices(selectedPlanPrices.items);
 		return periods.map((period) => ({
 			label: toSentenceCase(period.replace('_', ' ')),
 			value: period,
@@ -169,14 +172,13 @@ const SubscriptionForm = ({
 	}, [selectedPlanPrices]);
 
 	const availableCurrencies = useMemo(() => {
-		if (!selectedPlanPrices?.items || !state.billingPeriod) return [];
-		const currencies = [
-			...new Set(
-				selectedPlanPrices.items
-					.filter((price) => price.billing_period.toLowerCase() === state.billingPeriod.toLowerCase())
-					.map((price) => price.currency),
-			),
-		];
+		const items = selectedPlanPrices?.items;
+		if (!items?.length || !state.billingPeriod) return [];
+		const recurringForPeriod = items.filter(
+			(price) => !isOneTimePlanPrice(price) && price.billing_period.toLowerCase() === state.billingPeriod.toLowerCase(),
+		);
+		const source = recurringForPeriod.length > 0 ? recurringForPeriod : items.filter(isOneTimePlanPrice);
+		const currencies = [...new Set(source.map((price) => price.currency))];
 		return currencies.map((currency) => ({
 			label: currency.toUpperCase(),
 			value: currency,
@@ -202,14 +204,12 @@ const SubscriptionForm = ({
 			return;
 		}
 
-		// Get available currencies for the new billing period
-		const currencies = [
-			...new Set(
-				selectedPlanPrices.items
-					.filter((price) => price.billing_period.toLowerCase() === value.toLowerCase())
-					.map((price) => price.currency),
-			),
-		];
+		// Get available currencies for the new billing period (recurring only; fallback to one-time if plan has no recurring for that period)
+		const recurringForPeriod = selectedPlanPrices.items.filter(
+			(price) => !isOneTimePlanPrice(price) && price.billing_period.toLowerCase() === value.toLowerCase(),
+		);
+		const source = recurringForPeriod.length > 0 ? recurringForPeriod : selectedPlanPrices.items.filter(isOneTimePlanPrice);
+		const currencies = [...new Set(source.map((price) => price.currency))];
 		const defaultCurrency = currencies.includes(state.currency) ? state.currency : currencies[0];
 
 		setState({

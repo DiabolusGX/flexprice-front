@@ -13,7 +13,7 @@ import { GetAllPlansResponse } from '@/api/PlanApi';
 import { PricingCard, type PricingCardProps } from '@/components/molecules';
 import { ApiDocsContent } from '@/components/molecules';
 import { PlanDrawer } from '@/components/molecules';
-import { Price, INVOICE_CADENCE, PRICE_TYPE, ENTITLEMENT_ENTITY_TYPE, PRICE_ENTITY_TYPE, ENTITY_STATUS } from '@/models';
+import { Price, BILLING_PERIOD, INVOICE_CADENCE, PRICE_TYPE, ENTITLEMENT_ENTITY_TYPE, PRICE_ENTITY_TYPE, ENTITY_STATUS } from '@/models';
 import { generateExpandQueryParams } from '@/utils/common/api_helper';
 import { EXPAND } from '@/models/expand';
 
@@ -21,8 +21,8 @@ type PriceType = {
 	currency: string;
 	billing_period: string;
 	billing_model: string;
-	type: string;
-	billing_cadence: string;
+	type: PRICE_TYPE;
+	billing_cadence?: string;
 	amount?: string;
 	meter?: {
 		id: string;
@@ -40,9 +40,10 @@ const parseAmount = (amount: string | undefined): number => {
 	return isNaN(parsed) ? 0 : parsed;
 };
 
-const isRecurringPrice = (price: PriceType) => price.type === 'FIXED' && price.billing_cadence === 'RECURRING';
+const isRecurringPrice = (price: PriceType) =>
+	price.type === PRICE_TYPE.FIXED && price.billing_period?.toUpperCase() !== BILLING_PERIOD.ONETIME;
 
-const isUsageBasedPrice = (price: PriceType) => price.type === 'USAGE';
+const isUsageBasedPrice = (price: PriceType) => price.type === PRICE_TYPE.USAGE;
 
 const getPriceDisplayType = (prices: PriceType[]): PlanType => {
 	if (!prices || prices.length === 0) return PlanType.USAGE_ONLY;
@@ -55,17 +56,17 @@ const getPriceDisplayType = (prices: PriceType[]): PlanType => {
 	// Check if all recurring prices are zero
 	const allRecurringZero = recurringPrices.every((p) => parseAmount(p.amount) === 0);
 
-	// Free plan: Only recurring with amount 0
+	// Free plan: Only fixed charges with amount 0
 	if (recurringPrices.length > 0 && !usagePrices.length && allRecurringZero) {
 		return PlanType.FREE;
 	}
 
-	// Hybrid Free: Recurring with amount 0 + Usage
+	// Hybrid Free: Fixed charges with amount 0 + Usage
 	if (recurringPrices.length > 0 && usagePrices.length > 0 && allRecurringZero) {
 		return PlanType.HYBRID_FREE;
 	}
 
-	// Hybrid Paid: Recurring with amount > 0 + Usage
+	// Hybrid Paid: Fixed charges with amount > 0 + Usage
 	if (recurringPrices.length > 0 && usagePrices.length > 0) {
 		return PlanType.HYBRID_PAID;
 	}
@@ -75,7 +76,7 @@ const getPriceDisplayType = (prices: PriceType[]): PlanType => {
 		return PlanType.USAGE_ONLY;
 	}
 
-	// Fixed: Only recurring with amount > 0
+	// Fixed: Only fixed charges with amount > 0
 	if (recurringPrices.length > 0 && hasNonZeroRecurring) {
 		return PlanType.FIXED;
 	}
@@ -382,12 +383,12 @@ const PricingPage = () => {
 		const sortedPlans = filtered.sort((a, b) => {
 			// Simple helper functions
 			const getRecurringAmount = (plan: any) => {
-				const recurringPrice = plan.prices?.find((price: PriceType) => price.type === 'FIXED' && price.billing_cadence === 'RECURRING');
+				const recurringPrice = plan.prices?.find((price: PriceType) => isRecurringPrice(price));
 				return recurringPrice ? parseFloat(recurringPrice.amount || '0') : 0;
 			};
 
 			const getUsageFlag = (plan: any) => {
-				return plan.prices?.some((price: PriceType) => price.type === 'USAGE') ? 1 : 0;
+				return plan.prices?.some((price: PriceType) => price.type === PRICE_TYPE.USAGE) ? 1 : 0;
 			};
 
 			// Get values for comparison
@@ -420,7 +421,7 @@ const PricingPage = () => {
 				tiers: price.tiers as unknown as { up_to: number | null; unit_amount: string; flat_amount: string }[],
 				meter_name: price.meter?.name || 'Usage',
 				billing_period: price.billing_period,
-				type: price.type as PRICE_TYPE,
+				type: price.type,
 				invoice_cadence: price.invoice_cadence as INVOICE_CADENCE,
 			})) || [];
 

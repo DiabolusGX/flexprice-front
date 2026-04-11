@@ -20,7 +20,7 @@ export interface Price extends BaseModel {
 	readonly billing_period_count: number;
 	readonly billing_model: BILLING_MODEL;
 	readonly display_name: string;
-	readonly billing_cadence: BILLING_CADENCE;
+	readonly billing_cadence?: BILLING_CADENCE;
 	readonly tier_mode: TIER_MODE;
 	readonly tiers: Tier[] | null;
 	readonly price_unit_tiers?: Tier[] | null;
@@ -111,6 +111,7 @@ export enum BILLING_PERIOD {
 	DAILY = 'DAILY',
 	QUARTERLY = 'QUARTERLY',
 	HALF_YEARLY = 'HALF_YEARLY',
+	ONETIME = 'ONETIME',
 }
 
 export enum PRICE_STATUS {

@@ -6,8 +6,9 @@ import UsagePricingForm, { PriceInternalState } from '@/components/organisms/Pla
 import type { InternalPrice } from '@/components/organisms/PlanForm/SetupChargesSection';
 import type { CreateSubscriptionLineItemRequest } from '@/types/dto/Subscription';
 import { RectangleRadiogroup, type RectangleRadiogroupOption } from '@/components/molecules';
-import { BILLING_CADENCE, INVOICE_CADENCE } from '@/models/Invoice';
-import { BILLING_MODEL, BILLING_PERIOD, PRICE_TYPE, PRICE_ENTITY_TYPE } from '@/models/Price';
+import { INVOICE_CADENCE } from '@/models/Invoice';
+import { BILLING_MODEL, PRICE_TYPE, PRICE_ENTITY_TYPE } from '@/models/Price';
+import { BILLING_PERIOD } from '@/constants/constants';
 import { Gauge, Repeat } from 'lucide-react';
 import {
 	internalPriceToSubscriptionLineItemRequest,
@@ -18,7 +19,7 @@ export type AddedSubscriptionLineItem = CreateSubscriptionLineItemRequest & { te
 
 const CHARGE_OPTIONS: RectangleRadiogroupOption[] = [
 	{
-		label: 'Recurring Charges',
+		label: 'Fixed charges',
 		value: PRICE_TYPE.FIXED,
 		icon: Repeat,
 		description: 'Billed on a fixed schedule (monthly, yearly, etc.)',
@@ -36,7 +37,7 @@ interface AddSubscriptionChargeDialogProps {
 	onOpenChange: (open: boolean) => void;
 	onSave: (item: AddedSubscriptionLineItem) => void;
 	defaultCurrency?: string;
-	defaultBillingPeriod?: string;
+	defaultBillingPeriod?: BILLING_PERIOD;
 	/** Default start date for new charges (e.g. subscription start_date in ISO format). */
 	defaultStartDate?: string;
 	/** When set, dialog is in edit mode: form pre-filled and save updates this item (same tempId). */
@@ -47,16 +48,15 @@ interface AddSubscriptionChargeDialogProps {
 
 function getEmptyPrice(
 	defaultCurrency?: string,
-	defaultBillingPeriod?: string,
+	defaultBillingPeriod?: BILLING_PERIOD,
 	defaultStartDate?: string,
 	type: PRICE_TYPE = PRICE_TYPE.FIXED,
 ): Partial<InternalPrice> {
 	const base = {
 		currency: defaultCurrency ?? 'USD',
-		billing_period: defaultBillingPeriod ? (defaultBillingPeriod as BILLING_PERIOD) : BILLING_PERIOD.MONTHLY,
+		billing_period: defaultBillingPeriod ?? BILLING_PERIOD.MONTHLY,
 		billing_period_count: 1,
 		invoice_cadence: INVOICE_CADENCE.ARREAR,
-		billing_cadence: BILLING_CADENCE.RECURRING,
 		display_name: '',
 		start_date: defaultStartDate,
 		internal_state: PriceInternalState.NEW,
@@ -89,7 +89,7 @@ const AddSubscriptionChargeDialog: React.FC<AddSubscriptionChargeDialogProps> = 
 	subscriptionId,
 }) => {
 	const isEditMode = !!initialItem;
-	const editType = initialItem?.price?.type as PRICE_TYPE | undefined;
+	const editType = initialItem?.price?.type;
 	const resolvedEditType = editType === PRICE_TYPE.USAGE ? PRICE_TYPE.USAGE : PRICE_TYPE.FIXED;
 
 	const [selectedChargeType, setSelectedChargeType] = useState<PRICE_TYPE | null>(null);
@@ -161,8 +161,8 @@ const AddSubscriptionChargeDialog: React.FC<AddSubscriptionChargeDialogProps> = 
 
 	const getTitle = () => {
 		if (showRadiogroup) return 'Add charge';
-		if (isEditMode) return resolvedEditType === PRICE_TYPE.USAGE ? 'Edit usage charge' : 'Edit recurring charge';
-		return showUsageForm ? 'Add usage charge' : 'Add recurring charge';
+		if (isEditMode) return resolvedEditType === PRICE_TYPE.USAGE ? 'Edit usage charge' : 'Edit fixed charge';
+		return showUsageForm ? 'Add usage charge' : 'Add fixed charge';
 	};
 
 	const getDescription = () => {

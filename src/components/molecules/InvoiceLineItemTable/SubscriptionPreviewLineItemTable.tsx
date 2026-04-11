@@ -1,7 +1,7 @@
 import { Button, FormHeader, Toggle } from '@/components/atoms';
 import { LineItem, INVOICE_TYPE } from '@/models/Invoice';
 import { formatBillingPeriod } from '@/utils/common/format_date';
-import { getCurrencySymbol } from '@/utils/common/helper_functions';
+import { getCurrencySymbol, getPriceTypeLabel } from '@/utils/common/helper_functions';
 import { FC } from 'react';
 import { RefreshCw } from 'lucide-react';
 interface Props {
@@ -23,17 +23,6 @@ interface Props {
 
 const formatAmount = (amount: number, currency: string): string => {
 	return `${getCurrencySymbol(currency)}${amount}`;
-};
-
-const formatPriceType = (value: string): string => {
-	switch (value) {
-		case 'FIXED':
-			return 'Recurring';
-		case 'USAGE':
-			return 'Usage Based';
-		default:
-			return 'Unknown';
-	}
 };
 
 const SubscriptionPreviewLineItemTable: FC<Props> = ({
@@ -107,7 +96,7 @@ const SubscriptionPreviewLineItemTable: FC<Props> = ({
 								<tr key={index} className='border-b border-gray-100'>
 									<td className='py-4 px-0 text-sm text-gray-900'>{item.display_name ?? '--'}</td>
 									{invoiceType === INVOICE_TYPE.SUBSCRIPTION && (
-										<td className='py-4 px-4 text-sm text-gray-600'>{item.price_type ? formatPriceType(item.price_type) : '--'}</td>
+										<td className='py-4 px-4 text-sm text-gray-600'>{item.price_type ? getPriceTypeLabel(item.price_type) : '--'}</td>
 									)}
 									{invoiceType === INVOICE_TYPE.SUBSCRIPTION && (
 										<td className='py-4 px-4 text-sm text-gray-600'>

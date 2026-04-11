@@ -7,10 +7,12 @@ import { RouteNames } from '@/core/routes/Routes';
 import { formatAmount } from '@/components/atoms/Input/Input';
 import { PlanType } from '@/constants/planTypes';
 import { cn } from '@/lib/utils';
+import { PRICE_TYPE } from '@/models';
 export interface UsageCharge {
 	amount?: string;
 	currency?: string;
 	billing_model: string;
+	type?: PRICE_TYPE;
 	tiers?: Array<{
 		up_to: number | null;
 		unit_amount: string;
@@ -28,7 +30,7 @@ export interface PricingCardProps {
 		amount?: string;
 		currency?: string;
 		billingPeriod?: string;
-		type?: string;
+		type?: PRICE_TYPE;
 		displayType: PlanType;
 	};
 	usageCharges?: UsageCharge[];

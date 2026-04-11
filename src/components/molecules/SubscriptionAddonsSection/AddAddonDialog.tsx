@@ -12,16 +12,18 @@ import toast from 'react-hot-toast';
 import { refetchQueries } from '@/core/services/tanstack/ReactQueryProvider';
 import { ColumnData, FlexpriceTable } from '@/components/molecules';
 import { Price, PRICE_TYPE } from '@/models/Price';
+import { BILLING_PERIOD } from '@/constants/constants';
 import { LineItemCommitmentConfig, LineItemCommitmentsMap } from '@/types/dto/LineItemCommitmentConfig';
 import CommitmentConfigDialog from '@/components/molecules/CommitmentConfigDialog';
 import { formatCommitmentSummary } from '@/utils/common/commitment_helpers';
+import { isOneTimePlanPrice } from '@/utils/subscription/planPricesForSubscriptionUi';
 
 interface Props {
 	isOpen: boolean;
 	onOpenChange: (open: boolean) => void;
 	subscriptionId: string;
 	existingAddons: AddonResponse[];
-	billingPeriod?: string;
+	billingPeriod?: BILLING_PERIOD;
 	currency?: string;
 }
 
@@ -133,11 +135,12 @@ const AddAddonDialog: React.FC<Props> = ({ isOpen, onOpenChange, subscriptionId,
 	const selectedAddonPrices = useMemo(() => {
 		const prices: Price[] = (selectedAddonDetails?.prices as Price[]) || [];
 		let filtered = prices;
-		if (billingPeriod) {
-			filtered = filtered.filter((p) => p.billing_period?.toLowerCase() === billingPeriod.toLowerCase());
-		}
 		if (currency) {
 			filtered = filtered.filter((p) => p.currency?.toLowerCase() === currency.toLowerCase());
+		}
+		if (billingPeriod) {
+			const periodKey = billingPeriod.toUpperCase();
+			filtered = filtered.filter((p) => isOneTimePlanPrice(p) || p.billing_period?.toUpperCase() === periodKey);
 		}
 		return filtered;
 	}, [selectedAddonDetails, billingPeriod, currency]);

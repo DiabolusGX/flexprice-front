@@ -1,4 +1,4 @@
-import { BILLING_CADENCE, INVOICE_CADENCE } from '@/constants';
+import { INVOICE_CADENCE } from '@/constants';
 import {
 	Price,
 	BILLING_MODEL,
@@ -67,7 +67,6 @@ export interface CreatePriceRequest {
 	billing_period?: BILLING_PERIOD;
 	billing_period_count?: number; // defaults to 1
 	billing_model: BILLING_MODEL;
-	billing_cadence: BILLING_CADENCE;
 	meter_id?: string;
 	filter_values?: Record<string, string[]>;
 	lookup_key?: string;

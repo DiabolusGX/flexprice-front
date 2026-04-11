@@ -328,7 +328,6 @@ export interface CreateSubscriptionRequest {
 	end_date?: string;
 	trial_start?: string;
 	trial_end?: string;
-	billing_cadence: BILLING_CADENCE;
 	billing_period: BILLING_PERIOD;
 	billing_period_count?: number;
 	metadata?: Metadata;
@@ -599,7 +598,6 @@ export interface SubscriptionPriceCreateRequest {
 	billing_period: BILLING_PERIOD;
 	billing_period_count?: number;
 	billing_model: BILLING_MODEL;
-	billing_cadence: BILLING_CADENCE;
 	invoice_cadence: INVOICE_CADENCE;
 	amount?: string;
 	meter_id?: string;
@@ -668,7 +666,7 @@ export interface SubscriptionLineItemResponse {
 	subscription_id: string;
 	customer_id: string;
 	price_id: string;
-	price_type: string;
+	price_type: PRICE_TYPE;
 	currency: string;
 	billing_period: string;
 	invoice_cadence: string;

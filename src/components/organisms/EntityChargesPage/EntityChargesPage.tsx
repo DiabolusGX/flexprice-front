@@ -15,7 +15,7 @@ import { RouteNames } from '@/core/routes/Routes';
 import { useBreadcrumbsStore } from '@/store/useBreadcrumbsStore';
 import { RectangleRadiogroup, RectangleRadiogroupOption } from '@/components/molecules';
 import { Gauge, Repeat } from 'lucide-react';
-import { BILLING_CADENCE, INVOICE_CADENCE } from '@/models/Invoice';
+import { INVOICE_CADENCE } from '@/models/Invoice';
 import { BILLING_MODEL, PRICE_TYPE, PRICE_ENTITY_TYPE, PRICE_UNIT_TYPE, BILLING_PERIOD } from '@/models/Price';
 import { logger } from '@/utils/common/Logger';
 import { refetchQueries } from '@/core/services/tanstack/ReactQueryProvider';
@@ -32,7 +32,7 @@ export enum ENTITY_TYPE {
 
 const CHARGE_OPTIONS: RectangleRadiogroupOption[] = [
 	{
-		label: 'Recurring Charges',
+		label: 'Fixed charges',
 		value: PRICE_TYPE.FIXED,
 		icon: Repeat,
 		description: 'Billed on a fixed schedule (monthly, yearly, etc.)',
@@ -55,7 +55,6 @@ const createEmptyPrice = (type: PRICE_TYPE): InternalPrice => ({
 	billing_period_count: 1,
 	invoice_cadence: INVOICE_CADENCE.ARREAR,
 	billing_model: type === PRICE_TYPE.FIXED ? BILLING_MODEL.FLAT_FEE : undefined,
-	billing_cadence: BILLING_CADENCE.RECURRING,
 	internal_state: PriceInternalState.NEW,
 });
 
@@ -253,7 +252,6 @@ const EntityChargesPage: React.FC<EntityChargesPageProps> = ({ entityType, entit
 				billing_period: price.billing_period!,
 				billing_period_count: price.billing_period_count || 1,
 				billing_model: price.billing_model!,
-				billing_cadence: price.billing_cadence || BILLING_CADENCE.RECURRING,
 				meter_id: price.meter_id,
 				filter_values: price.filter_values || undefined,
 				lookup_key: price.lookup_key,
@@ -320,7 +318,7 @@ const EntityChargesPage: React.FC<EntityChargesPageProps> = ({ entityType, entit
 		}
 	}, [state.recurringCharges, state.usageCharges, priceEntityType, entityId, createBulkPrices, navigate, entityType, routeName, onSuccess]);
 
-	// Recurring charges handlers
+	// Fixed charges handlers
 	const handleRecurringChargeAdd = useCallback((index: number, charge: Partial<InternalPrice>) => {
 		dispatch({
 			type: ChargeActionType.UPDATE_RECURRING_CHARGE,
@@ -400,7 +398,7 @@ const EntityChargesPage: React.FC<EntityChargesPageProps> = ({ entityType, entit
 	return (
 		<Page documentTitle={`Add Charges to ${entityName || entityType}`} heading={`Add Charges to ${entityName || entityType}`}>
 			<div className='space-y-6'>
-				{/* Recurring Charges Section */}
+				{/* Fixed charges section */}
 				{state.recurringCharges.map((charge, index) => (
 					<div key={`recurring-${index}`}>
 						<RecurringChargesForm
@@ -445,8 +443,8 @@ const EntityChargesPage: React.FC<EntityChargesPageProps> = ({ entityType, entit
 					<div className='flex gap-2' role='group' aria-label='Add charge options'>
 						<AddChargesButton
 							onClick={() => handleAddNewPrice(PRICE_TYPE.FIXED)}
-							label='Add Recurring Charges'
-							aria-label={`Add recurring charges to ${entityType.toLowerCase()}`}
+							label='Add fixed charge'
+							aria-label={`Add fixed charge to ${entityType.toLowerCase()}`}
 						/>
 						<AddChargesButton
 							onClick={() => handleAddNewPrice(PRICE_TYPE.USAGE)}

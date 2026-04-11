@@ -18,6 +18,8 @@ import type { AddedSubscriptionLineItem } from './AddSubscriptionChargeDialog';
 import { getCurrencySymbol } from '@/utils/common/helper_functions';
 import { formatBillingPeriodForPrice } from '@/utils/common/helper_functions';
 import { formatAmount } from '@/components/atoms/Input/Input';
+import { BILLING_PERIOD } from '@/constants/constants';
+import { isOneTimePlanPrice } from '@/utils/subscription/planPricesForSubscriptionUi';
 
 const DEFAULT_ROW_LIMIT = 5;
 
@@ -189,7 +191,7 @@ const PriceQuantityCell: FC<PriceQuantityCellProps> = ({
 export interface Props {
 	data: Price[];
 	/** Used for filtering and dialog context (e.g. commitment). */
-	billingPeriod?: string;
+	billingPeriod?: BILLING_PERIOD;
 	/** Used for filtering and LineItemCoupon. */
 	currency?: string;
 	onPriceOverride?: (priceId: string, override: Partial<ExtendedPriceOverride>) => void;
@@ -254,11 +256,12 @@ const SubscriptionPriceTable: FC<Props> = ({
 
 	const filteredPrices = useMemo(() => {
 		let filtered = data;
-		if (billingPeriod) {
-			filtered = filtered.filter((p) => p.billing_period.toLowerCase() === billingPeriod.toLowerCase());
-		}
 		if (currency) {
 			filtered = filtered.filter((p) => p.currency.toLowerCase() === currency.toLowerCase());
+		}
+		if (billingPeriod) {
+			const periodKey = billingPeriod.toUpperCase();
+			filtered = filtered.filter((p) => isOneTimePlanPrice(p) || p.billing_period.toUpperCase() === periodKey);
 		}
 		return filtered;
 	}, [data, billingPeriod, currency]);

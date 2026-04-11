@@ -1,4 +1,4 @@
-import { BILLING_CADENCE, INVOICE_CADENCE } from '@/models/Invoice';
+import { INVOICE_CADENCE } from '@/models/Invoice';
 import { BILLING_MODEL, BILLING_PERIOD, PRICE_ENTITY_TYPE, PRICE_TYPE, PRICE_UNIT_TYPE } from '@/models/Price';
 import { FEATURE_TYPE } from '@/models/Feature';
 import { ENTITLEMENT_ENTITY_TYPE, ENTITLEMENT_USAGE_RESET_PERIOD } from '@/models/Entitlement';
@@ -38,15 +38,14 @@ function toBillingPeriod(period: PricingPrice['billing_period']): BILLING_PERIOD
 	switch (period) {
 		case 'annual':
 			return BILLING_PERIOD.ANNUAL;
+		case 'one_time':
+			return BILLING_PERIOD.ONETIME;
 		case 'monthly':
 		default:
 			return BILLING_PERIOD.MONTHLY;
 	}
 }
 
-function toBillingCadence(period: PricingPrice['billing_period']): BILLING_CADENCE {
-	return period === 'one_time' ? BILLING_CADENCE.ONETIME : BILLING_CADENCE.RECURRING;
-}
 
 function billingPeriodToResetPeriod(period: PricingPrice['billing_period']): ENTITLEMENT_USAGE_RESET_PERIOD {
 	if (period === 'annual') return ENTITLEMENT_USAGE_RESET_PERIOD.ANNUAL;
@@ -303,7 +302,6 @@ export async function orchestrateSetup(schema: PricingSchema, onProgress?: Progr
 				billing_period: toBillingPeriod(price.billing_period),
 				billing_period_count: 1,
 				billing_model: BILLING_MODEL.FLAT_FEE,
-				billing_cadence: toBillingCadence(price.billing_period),
 				invoice_cadence: INVOICE_CADENCE.ADVANCE,
 			});
 		}
@@ -328,7 +326,6 @@ export async function orchestrateSetup(schema: PricingSchema, onProgress?: Progr
 				billing_period: toBillingPeriod(charge.billing_period),
 				billing_period_count: 1,
 				billing_model: isPackage ? BILLING_MODEL.PACKAGE : BILLING_MODEL.FLAT_FEE,
-				billing_cadence: BILLING_CADENCE.RECURRING,
 				invoice_cadence: INVOICE_CADENCE.ARREAR,
 				meter_id: meterId,
 				...(isPackage && charge.package_size ? { transform_quantity: { divide_by: charge.package_size, round: 'up' } } : {}),
@@ -374,10 +371,10 @@ export async function orchestrateSetup(schema: PricingSchema, onProgress?: Progr
 					...(isStatic
 						? { static_value: ent.is_unlimited ? 'unlimited' : String(ent.value ?? 'true') }
 						: {
-								usage_limit: ent.is_unlimited ? null : (ent.value ?? null),
-								usage_reset_period: billingPeriodToResetPeriod(planBillingPeriod),
-								is_soft_limit: false,
-							}),
+							usage_limit: ent.is_unlimited ? null : (ent.value ?? null),
+							usage_reset_period: billingPeriodToResetPeriod(planBillingPeriod),
+							is_soft_limit: false,
+						}),
 				});
 			}
 		}

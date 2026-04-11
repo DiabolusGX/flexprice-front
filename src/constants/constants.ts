@@ -21,6 +21,7 @@ export enum BILLING_PERIOD {
 	QUARTERLY = 'QUARTERLY',
 	HALF_YEARLY = 'HALF_YEARLY',
 	ANNUAL = 'ANNUAL',
+	ONETIME = 'ONETIME',
 }
 
 // Dashboard time periods for analytics and monitoring
@@ -80,6 +81,7 @@ export const billlingPeriodOptions = [
 	{ label: 'Yearly', value: BILLING_PERIOD.ANNUAL },
 	{ label: 'Quarterly', value: BILLING_PERIOD.QUARTERLY },
 	{ label: 'Half-Yearly', value: BILLING_PERIOD.HALF_YEARLY },
+	{ label: 'One-time', value: BILLING_PERIOD.ONETIME },
 ];
 
 export const creditGrantPeriodOptions = [

@@ -1,6 +1,8 @@
 export { default as SubscriptionEditDetailsHeader } from './SubscriptionEditDetailsHeader';
 export { default as SubscriptionEditChargesSection } from './SubscriptionEditChargesSection';
 export { default as SubscriptionEditCreditGrantsSection } from './SubscriptionEditCreditGrantsSection';
+export { default as SubscriptionEditInheritingCustomersSection } from './SubscriptionEditInheritingCustomersSection';
+export type { SubscriptionEditInheritingCustomersSectionProps } from './SubscriptionEditInheritingCustomersSection';
 export { default as SubscriptionLineItemQuantityModifyDialog } from './SubscriptionLineItemQuantityModifyDialog';
 export type { SubscriptionLineItemQuantityModifyDialogProps } from './SubscriptionLineItemQuantityModifyDialog';
 export { default as SubscriptionModifyPreviewSummary } from './SubscriptionModifyPreviewSummary';

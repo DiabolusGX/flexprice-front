@@ -1,4 +1,4 @@
-import { Page, ActionButton, Chip } from '@/components/atoms';
+import { Page, ActionButton, Chip, Tooltip } from '@/components/atoms';
 import { ApiDocsContent, RedirectCell } from '@/components/molecules';
 import { ColumnData } from '@/components/molecules/Table';
 import { QueryableDataArea } from '@/components/organisms';
@@ -27,6 +27,7 @@ import { Trash2 } from 'lucide-react';
 import { SubscriptionResponse } from '@/types/dto/Subscription';
 import { useMemo, useState } from 'react';
 import SubscriptionCancelDialog from '@/components/molecules/SubscriptionCancelDialog/SubscriptionCancelDialog';
+import { isInheritedSubscription } from '@/utils/subscription/isInheritedSubscription';
 
 const sortingOptions: SortOption[] = [
 	{
@@ -176,29 +177,38 @@ const SubscriptionsPage = () => {
 			},
 			{
 				fieldVariant: 'interactive',
-				render: (row) => (
-					<ActionButton
-						id={row.id}
-						deleteMutationFn={async () => Promise.resolve()}
-						refetchQueryKey='fetchSubscriptions'
-						isArchiveDisabled={true}
-						entityName='Subscription'
-						edit={{
-							path: `${RouteNames.subscriptions}/${row.id}/edit`,
-						}}
-						archive={{
-							enabled: false,
-						}}
-						customActions={[
-							{
-								text: 'Cancel',
-								icon: <Trash2 />,
-								enabled: row.subscription_status !== SUBSCRIPTION_STATUS.CANCELLED,
-								onClick: () => setCancelSubscriptionId(row.id),
-							},
-						]}
-					/>
-				),
+				render: (row) => {
+					if (isInheritedSubscription(row)) {
+						return (
+							<Tooltip delayDuration={0} content='Inherited subscriptions are read-only. Make changes on the parent subscription.'>
+								<span className='inline-flex cursor-default text-muted-foreground tabular-nums'>—</span>
+							</Tooltip>
+						);
+					}
+					return (
+						<ActionButton
+							id={row.id}
+							deleteMutationFn={async () => Promise.resolve()}
+							refetchQueryKey='fetchSubscriptions'
+							isArchiveDisabled={true}
+							entityName='Subscription'
+							edit={{
+								path: `${RouteNames.subscriptions}/${row.id}/edit`,
+							}}
+							archive={{
+								enabled: false,
+							}}
+							customActions={[
+								{
+									text: 'Cancel',
+									icon: <Trash2 />,
+									enabled: row.subscription_status !== SUBSCRIPTION_STATUS.CANCELLED,
+									onClick: () => setCancelSubscriptionId(row.id),
+								},
+							]}
+						/>
+					);
+				},
 			},
 		],
 		[],

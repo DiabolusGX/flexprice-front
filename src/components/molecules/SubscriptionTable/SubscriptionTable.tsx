@@ -1,5 +1,5 @@
 import { FC, useState } from 'react';
-import { ActionButton, Chip } from '@/components/atoms';
+import { ActionButton, Chip, Tooltip } from '@/components/atoms';
 import FlexpriceTable, { ColumnData } from '../Table';
 import formatDate from '@/utils/common/format_date';
 import { Subscription, SUBSCRIPTION_STATUS } from '@/models/Subscription';
@@ -9,6 +9,7 @@ import RedirectCell from '../Table/RedirectCell';
 import { Trash2 } from 'lucide-react';
 import { SubscriptionResponse } from '@/types/dto/Subscription';
 import SubscriptionCancelDialog from '@/components/molecules/SubscriptionCancelDialog/SubscriptionCancelDialog';
+import { isInheritedSubscription } from '@/utils/subscription/isInheritedSubscription';
 
 interface Props {
 	data: Subscription[];
@@ -64,29 +65,38 @@ const SubscriptionTable: FC<Props> = ({ data, onEdit }) => {
 		},
 		{
 			fieldVariant: 'interactive',
-			render: (row) => (
-				<ActionButton
-					id={row.id}
-					deleteMutationFn={async () => Promise.resolve()}
-					refetchQueryKey='fetchSubscriptions'
-					entityName='Subscription'
-					edit={{
-						path: `${RouteNames.subscriptions}/${row.id}/edit`,
-						onClick: () => onEdit?.(row),
-					}}
-					archive={{
-						enabled: false,
-					}}
-					customActions={[
-						{
-							text: 'Cancel',
-							icon: <Trash2 />,
-							enabled: row.subscription_status !== SUBSCRIPTION_STATUS.CANCELLED,
-							onClick: () => setCancelSubscriptionId(row.id),
-						},
-					]}
-				/>
-			),
+			render: (row) => {
+				if (isInheritedSubscription(row)) {
+					return (
+						<Tooltip delayDuration={0} content='Inherited subscriptions are read-only. Make changes on the parent subscription.'>
+							<span className='inline-flex cursor-default text-muted-foreground tabular-nums'>—</span>
+						</Tooltip>
+					);
+				}
+				return (
+					<ActionButton
+						id={row.id}
+						deleteMutationFn={async () => Promise.resolve()}
+						refetchQueryKey='fetchSubscriptions'
+						entityName='Subscription'
+						edit={{
+							path: `${RouteNames.subscriptions}/${row.id}/edit`,
+							onClick: () => onEdit?.(row),
+						}}
+						archive={{
+							enabled: false,
+						}}
+						customActions={[
+							{
+								text: 'Cancel',
+								icon: <Trash2 />,
+								enabled: row.subscription_status !== SUBSCRIPTION_STATUS.CANCELLED,
+								onClick: () => setCancelSubscriptionId(row.id),
+							},
+						]}
+					/>
+				);
+			},
 		},
 	];
 

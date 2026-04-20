@@ -5,6 +5,7 @@ import { SelectOption } from '@/components/atoms/Select/Select';
 import SubscriptionApi from '@/api/SubscriptionApi';
 import { SUBSCRIPTION_STATUS } from '@/models/Subscription';
 import { SubscriptionResponse, UpdateSubscriptionRequest } from '@/types/dto/Subscription';
+import { isInheritedSubscription } from '@/utils/subscription/isInheritedSubscription';
 
 function getPlanName(sub: SubscriptionResponse): string {
 	return sub.plan?.name ?? '—';
@@ -17,6 +18,8 @@ export interface UpdateSubscriptionDrawerProps {
 	subscription: SubscriptionResponse | null | undefined;
 	onSave: (payload: UpdateSubscriptionRequest) => void;
 	isSaving?: boolean;
+	/** When true, parent field and save are disabled (e.g. inherited subscription). */
+	readOnly?: boolean;
 }
 
 const UpdateSubscriptionDrawer: FC<UpdateSubscriptionDrawerProps> = ({
@@ -26,8 +29,10 @@ const UpdateSubscriptionDrawer: FC<UpdateSubscriptionDrawerProps> = ({
 	subscription,
 	onSave,
 	isSaving = false,
+	readOnly: readOnlyProp,
 }) => {
 	const [parentId, setParentId] = useState<string>('');
+	const readOnly = readOnlyProp ?? (subscription ? isInheritedSubscription(subscription) : false);
 
 	useEffect(() => {
 		if (open && subscription) {
@@ -64,7 +69,7 @@ const UpdateSubscriptionDrawer: FC<UpdateSubscriptionDrawerProps> = ({
 	const hasChanges = parentId !== (subscription?.parent_subscription_id ?? '');
 
 	const handleSave = () => {
-		if (!hasChanges) return;
+		if (readOnly || !hasChanges) return;
 		const payload: UpdateSubscriptionRequest = {};
 		if (parentId !== (subscription?.parent_subscription_id ?? '')) {
 			payload.parent_subscription_id = parentId.trim() || null;
@@ -90,6 +95,7 @@ const UpdateSubscriptionDrawer: FC<UpdateSubscriptionDrawerProps> = ({
 						value={parentId}
 						onChange={(value) => setParentId(value)}
 						noOptionsText='No subscriptions found'
+						disabled={readOnly}
 					/>
 				</div>
 
@@ -98,7 +104,7 @@ const UpdateSubscriptionDrawer: FC<UpdateSubscriptionDrawerProps> = ({
 					<Button variant='outline' onClick={() => onOpenChange(false)}>
 						Cancel
 					</Button>
-					<Button onClick={handleSave} disabled={!hasChanges || isSaving}>
+					<Button onClick={handleSave} disabled={readOnly || !hasChanges || isSaving}>
 						{isSaving ? 'Saving…' : 'Save'}
 					</Button>
 				</div>

@@ -13,6 +13,8 @@ import type { CreditGrant } from '@/models';
 export interface SubscriptionEditCreditGrantsSectionProps {
 	creditGrants: CreditGrant[];
 	isAddDisabled: boolean;
+	/** When true, add grant and per-row cancel/delete are disabled. */
+	readOnly?: boolean;
 	onAddClick: () => void;
 	onRequestCancel: (grant: CreditGrant) => void;
 	subscriptionId: string;
@@ -29,6 +31,7 @@ export interface SubscriptionEditCreditGrantsSectionProps {
 const SubscriptionEditCreditGrantsSection: FC<SubscriptionEditCreditGrantsSectionProps> = ({
 	creditGrants,
 	isAddDisabled,
+	readOnly = false,
 	onAddClick,
 	onRequestCancel,
 	subscriptionId,
@@ -41,6 +44,8 @@ const SubscriptionEditCreditGrantsSection: FC<SubscriptionEditCreditGrantsSectio
 	onConfirmCancelCreditGrant,
 	onCloseCancelModal,
 }) => {
+	const addDisabled = isAddDisabled || readOnly;
+
 	const columns: ColumnData<CreditGrant>[] = useMemo(
 		() => [
 			{
@@ -86,14 +91,14 @@ const SubscriptionEditCreditGrantsSection: FC<SubscriptionEditCreditGrantsSectio
 							{
 								text: 'Delete',
 								onClick: () => onRequestCancel(row),
-								enabled: true,
+								enabled: !readOnly,
 							},
 						]}
 					/>
 				),
 			},
 		],
-		[onRequestCancel],
+		[onRequestCancel, readOnly],
 	);
 
 	return (
@@ -102,17 +107,17 @@ const SubscriptionEditCreditGrantsSection: FC<SubscriptionEditCreditGrantsSectio
 				<Card variant='notched'>
 					<div className='flex items-center justify-between mb-4'>
 						<FormHeader title='Credit Grants' variant='sub-header' titleClassName='font-semibold' className='mb-0' />
-						<AddButton onClick={onAddClick} disabled={isAddDisabled} />
+						<AddButton onClick={onAddClick} disabled={addDisabled} />
 					</div>
 					<div className='mt-4'>
-						<FlexpriceTable showEmptyRow={false} data={creditGrants} columns={columns} />
+						<FlexpriceTable showEmptyRow={false} data={creditGrants} columns={columns} variant='no-bordered' />
 					</div>
 				</Card>
 			) : (
 				<NoDataCard
 					title='Credit Grants'
 					subtitle='No credit grants added to this subscription yet'
-					cta={<AddButton onClick={onAddClick} disabled={isAddDisabled} />}
+					cta={<AddButton onClick={onAddClick} disabled={addDisabled} />}
 				/>
 			)}
 

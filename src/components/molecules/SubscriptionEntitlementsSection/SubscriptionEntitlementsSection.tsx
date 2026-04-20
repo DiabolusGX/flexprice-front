@@ -13,9 +13,11 @@ import toast from 'react-hot-toast';
 
 interface SubscriptionEntitlementsSectionProps {
 	subscriptionId: string;
+	/** When true, add and delete entitlement actions are disabled. */
+	readOnly?: boolean;
 }
 
-const SubscriptionEntitlementsSection: FC<SubscriptionEntitlementsSectionProps> = ({ subscriptionId }) => {
+const SubscriptionEntitlementsSection: FC<SubscriptionEntitlementsSectionProps> = ({ subscriptionId, readOnly = false }) => {
 	const [drawerOpen, setDrawerOpen] = useState(false);
 	const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -148,7 +150,7 @@ const SubscriptionEntitlementsSection: FC<SubscriptionEntitlementsSectionProps> 
 				// Only show actions if there's a subscription source
 				const hasSubscriptionSource = row.sources?.some((source: any) => source.entity_type?.toLowerCase() === 'subscription');
 
-				if (!hasSubscriptionSource) {
+				if (!hasSubscriptionSource || readOnly) {
 					return null;
 				}
 
@@ -213,7 +215,7 @@ const SubscriptionEntitlementsSection: FC<SubscriptionEntitlementsSectionProps> 
 					<CardHeader
 						title='Entitlements'
 						cta={
-							<Button prefixIcon={<Plus />} onClick={() => setDrawerOpen(true)}>
+							<Button prefixIcon={<Plus />} onClick={() => setDrawerOpen(true)} disabled={readOnly}>
 								Add
 							</Button>
 						}
@@ -225,7 +227,7 @@ const SubscriptionEntitlementsSection: FC<SubscriptionEntitlementsSectionProps> 
 					title='Entitlements'
 					subtitle='No entitlements added to this subscription yet'
 					cta={
-						<Button prefixIcon={<Plus />} onClick={() => setDrawerOpen(true)}>
+						<Button prefixIcon={<Plus />} onClick={() => setDrawerOpen(true)} disabled={readOnly}>
 							Add
 						</Button>
 					}

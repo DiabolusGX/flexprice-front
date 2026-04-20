@@ -37,6 +37,8 @@ export interface FlexpriceTableProps<T> {
 	showEmptyRow?: boolean;
 	hideBottomBorder?: boolean;
 	variant?: 'default' | 'no-bordered';
+	/** Applied to the inner `<table>` (e.g. `table-fixed` for predictable column widths). */
+	tableClassName?: string;
 }
 
 // Helper Functions
@@ -157,6 +159,7 @@ const FlexpriceTable: FC<FlexpriceTableProps<any>> = ({
 	showEmptyRow,
 	hideBottomBorder = true,
 	variant = 'default',
+	tableClassName,
 }) => {
 	const handleRowClick = (row: any, e: React.MouseEvent) => {
 		const target = e.target as HTMLElement;
@@ -291,7 +294,7 @@ const FlexpriceTable: FC<FlexpriceTableProps<any>> = ({
 				variant === 'default' && !hideBottomBorder && 'border-b border-[#E2E8F0]',
 				variant === 'no-bordered' && 'border-0',
 			)}>
-			<Table>
+			<Table className={tableClassName}>
 				{renderTableHeader()}
 				<TableBody>
 					{data.map((row, rowIndex) => renderTableRow(row, rowIndex))}

@@ -34,7 +34,7 @@ const Dialog: FC<Props> = ({
 					</DialogTitle>
 					{description && <DialogDescription className={cn('mt-6', descriptionClassName)}>{description}</DialogDescription>}
 				</DialogHeader>
-				<div className='mt-4'>{children}</div>
+				<div className='mt-4 w-full min-w-0'>{children}</div>
 			</DialogContent>
 		</ShadcnDialog>
 	);

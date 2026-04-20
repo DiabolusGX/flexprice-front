@@ -51,6 +51,7 @@ export {
 	SubscriptionEditDetailsHeader,
 	SubscriptionEditChargesSection,
 	SubscriptionEditCreditGrantsSection,
+	SubscriptionEditInheritingCustomersSection,
 	SubscriptionLineItemQuantityModifyDialog,
 	type SubscriptionLineItemQuantityModifyDialogProps,
 	SubscriptionModifyPreviewSummary,
@@ -67,6 +68,8 @@ export {
 	InvoiceStatusModal,
 } from './InvoiceTable';
 export { default as InvoiceLineItemTable } from './InvoiceLineItemTable';
+export { default as InvoiceDownloadFormatDialog } from './InvoiceDownloadFormatDialog/InvoiceDownloadFormatDialog';
+export type { InvoiceDownloadFormatDialogProps } from './InvoiceDownloadFormatDialog/InvoiceDownloadFormatDialog';
 export { default as InvoiceCreditLineItemTable } from './InvoiceCreditLineItemTable';
 export { default as InvoicePaymentsTable } from './InvoicePaymentsTable';
 

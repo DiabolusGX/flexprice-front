@@ -28,6 +28,7 @@ const COLLAPSE_ALL_SVG = '/assets/svg/collapse-all-svgrepo-com.svg';
 const CHEVRON_UP_SVG = '/assets/svg/chevron-up-svgrepo-com.svg';
 const CHEVRON_DOWN_SVG = '/assets/svg/chevron-down-svgrepo-com.svg';
 import { cn } from '@/lib/utils';
+import { Checkbox as UiCheckbox } from '@/components/ui/checkbox';
 
 const CustomerAnalyticsTab = () => {
 	const { id: customerId } = useParams();
@@ -35,6 +36,7 @@ const CustomerAnalyticsTab = () => {
 
 	// Filter states
 	const [selectedFeatures, setSelectedFeatures] = useState<Feature[]>([]);
+	const [includeChildren, setIncludeChildren] = useState(false);
 	const [startDate, setStartDate] = useState<Date | undefined>(() => {
 		const now = new Date();
 		return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -71,8 +73,12 @@ const CustomerAnalyticsTab = () => {
 			params.end_time = endDate.toISOString();
 		}
 
+		if (includeChildren) {
+			params.include_children = true;
+		}
+
 		return params;
-	}, [customer?.external_id, selectedFeatures, startDate, endDate]);
+	}, [customer?.external_id, selectedFeatures, startDate, endDate, includeChildren]);
 
 	// Prepare Cost API parameters
 	const costApiParams: GetCostAnalyticsRequest | null = useMemo(() => {
@@ -335,6 +341,18 @@ const CustomerAnalyticsTab = () => {
 								label='End Date'
 								minDate={minEndDate}
 							/>
+						</div>
+						<div className='ml-auto min-w-[200px]'>
+							<div className='mb-1 w-full text-start text-sm text-zinc-600'>Options</div>
+							<label
+								htmlFor='include-children'
+								className={cn(
+									'flex h-10 w-full items-center gap-2 rounded-[6px] border border-input bg-background px-3',
+									'cursor-pointer select-none',
+								)}>
+								<UiCheckbox id='include-children' checked={includeChildren} onCheckedChange={(v) => setIncludeChildren(Boolean(v))} />
+								<span className='text-sm font-medium text-zinc-900'>Include children</span>
+							</label>
 						</div>
 					</>
 				)}

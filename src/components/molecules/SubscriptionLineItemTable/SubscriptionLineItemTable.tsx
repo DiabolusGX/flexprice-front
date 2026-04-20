@@ -7,7 +7,7 @@ import { FC, useState, useCallback, useMemo } from 'react';
 import { Trash2, Pencil, Info } from 'lucide-react';
 import { ENTITY_STATUS } from '@/models/base';
 import { formatBillingPeriodForDisplay, getCurrencySymbol, getPriceTypeLabel } from '@/utils/common/helper_functions';
-import { PRICE_ENTITY_TYPE, PRICE_STATUS } from '@/models/Price';
+import { PRICE_ENTITY_TYPE, PRICE_STATUS, PRICE_TYPE } from '@/models/Price';
 import { formatDateTimeWithSecondsAndTimezone } from '@/utils/common/format_date';
 
 interface Props {
@@ -17,6 +17,8 @@ interface Props {
 	isLoading?: boolean;
 	hideCardWrapper?: boolean;
 	commitmentInfo?: SubscriptionCommitmentInfo;
+	/** When true, edit/terminate actions are disabled (e.g. inherited subscription). */
+	readOnly?: boolean;
 }
 
 interface LineItemWithStatus extends LineItem {
@@ -226,7 +228,15 @@ const formatCommitmentTooltip = (info: SubscriptionCommitmentInfo): React.ReactN
 	return <div className='flex flex-col gap-2'>{rows}</div>;
 };
 
-const SubscriptionLineItemTable: FC<Props> = ({ data, onEdit, onTerminate, isLoading, hideCardWrapper = false, commitmentInfo }) => {
+const SubscriptionLineItemTable: FC<Props> = ({
+	data,
+	onEdit,
+	onTerminate,
+	isLoading,
+	hideCardWrapper = false,
+	commitmentInfo,
+	readOnly = false,
+}) => {
 	const [showTerminateModal, setShowTerminateModal] = useState(false);
 	const [selectedLineItem, setSelectedLineItem] = useState<LineItem | null>(null);
 
@@ -321,6 +331,21 @@ const SubscriptionLineItemTable: FC<Props> = ({ data, onEdit, onTerminate, isLoa
 				title: 'Billing Period',
 				render: (row) => formatBillingPeriodForDisplay(row.billing_period),
 			},
+			{
+				title: 'Quantity',
+				render: (row) => {
+					if (row.price_type === PRICE_TYPE.USAGE) {
+						return <span className='text-gray-500'>--</span>;
+					}
+
+					const q = row.quantity;
+					if (q == null || !Number.isFinite(Number(q))) return <span className='text-gray-500'>--</span>;
+					const n = Number(q);
+					return (
+						<span className='tabular-nums'>{Number.isInteger(n) ? n : n.toLocaleString(undefined, { maximumFractionDigits: 6 })}</span>
+					);
+				},
+			},
 			...(hasMultipleEntityTypes
 				? [
 						{
@@ -363,14 +388,14 @@ const SubscriptionLineItemTable: FC<Props> = ({ data, onEdit, onTerminate, isLoa
 			},
 			{
 				fieldVariant: 'interactive',
-				width: '30px',
+				width: '48px',
 				hideOnEmpty: true,
 				render: (row) => {
 					const isArchived = row.status === ENTITY_STATUS.ARCHIVED;
 					const defaultEndDate = '0001-01-01T00:00:00Z';
 					const hasEndDate = !!(row.end_date && row.end_date.trim() !== '' && row.end_date !== defaultEndDate);
-					const isTerminateDisabled = isArchived || hasEndDate;
-					const isEditDisabled = isArchived || hasEndDate;
+					const isTerminateDisabled = readOnly || isArchived || hasEndDate;
+					const isEditDisabled = readOnly || isArchived || hasEndDate;
 
 					return (
 						<LineItemDropdown
@@ -384,7 +409,7 @@ const SubscriptionLineItemTable: FC<Props> = ({ data, onEdit, onTerminate, isLoa
 				},
 			},
 		],
-		[hasMultipleEntityTypes, commitmentInfo, handleEditClick, handleTerminateClick],
+		[hasMultipleEntityTypes, commitmentInfo, handleEditClick, handleTerminateClick, readOnly],
 	);
 
 	if (isLoading) {
@@ -430,11 +455,23 @@ const SubscriptionLineItemTable: FC<Props> = ({ data, onEdit, onTerminate, isLoa
 			)}
 
 			{hideCardWrapper ? (
-				<FlexpriceTable showEmptyRow={false} data={processedLineItems} columns={columns} />
+				<FlexpriceTable
+					showEmptyRow={false}
+					data={processedLineItems}
+					columns={columns}
+					variant='no-bordered'
+					tableClassName='table-fixed'
+				/>
 			) : (
 				<Card variant='notched'>
 					<CardHeader title='Charges' />
-					<FlexpriceTable showEmptyRow={false} data={processedLineItems} columns={columns} />
+					<FlexpriceTable
+						showEmptyRow={false}
+						data={processedLineItems}
+						columns={columns}
+						variant='no-bordered'
+						tableClassName='table-fixed'
+					/>
 				</Card>
 			)}
 		</>

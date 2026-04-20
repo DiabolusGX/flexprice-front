@@ -5,13 +5,14 @@ import {
 	InvoiceStatusModal,
 	InvoiceLineItemTable,
 	AppliedTaxesTable,
+	InvoiceDownloadFormatDialog,
 } from '@/components/molecules';
 import useUser from '@/hooks/useUser';
 import { useBreadcrumbsStore } from '@/store/useBreadcrumbsStore';
 import InvoiceApi from '@/api/InvoiceApi';
 import CustomerApi from '@/api/CustomerApi';
 import formatDate from '@/utils/common/format_date';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Download } from 'lucide-react';
 import { FC, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -32,6 +33,7 @@ const CustomerInvoiceDetail: FC<Props> = ({ invoice_id, breadcrumb_index }) => {
 		isPaymentModalOpen: false,
 		isStatusModalOpen: false,
 	});
+	const [isDownloadFormatOpen, setIsDownloadFormatOpen] = useState(false);
 	const [metadata, setMetadata] = useState<Record<string, string>>({});
 	const { updateBreadcrumb } = useBreadcrumbsStore();
 	const { data, isLoading, isError } = useQuery({
@@ -57,6 +59,16 @@ const CustomerInvoiceDetail: FC<Props> = ({ invoice_id, breadcrumb_index }) => {
 			return res;
 		},
 		enabled: hasSubscriptionCustomer,
+	});
+
+	const { mutateAsync: downloadInvoicePdfAsync, isPending: isPdfDownloadPending } = useMutation({
+		mutationFn: async () => InvoiceApi.downloadInvoicePdf(invoice_id),
+		onSuccess: () => {
+			toast.success('Invoice downloaded');
+		},
+		onError: (error: ServerError) => {
+			toast.error(error.error?.message || 'Unable to download invoice');
+		},
 	});
 
 	useEffect(() => {
@@ -104,10 +116,6 @@ const CustomerInvoiceDetail: FC<Props> = ({ invoice_id, breadcrumb_index }) => {
 		' ' +
 		user?.tenant.billing_details.address.address_country;
 
-	const handleDownlaod = () => {
-		InvoiceApi.downloadInvoicePdf(invoice_id);
-	};
-
 	if (isLoading) return <Loader />;
 
 	if (isError) {
@@ -143,12 +151,26 @@ const CustomerInvoiceDetail: FC<Props> = ({ invoice_id, breadcrumb_index }) => {
 						});
 					}}
 				/>
+				<InvoiceDownloadFormatDialog
+					open={isDownloadFormatOpen}
+					onOpenChange={setIsDownloadFormatOpen}
+					isPdfPending={isPdfDownloadPending}
+					onSelectPdf={() => downloadInvoicePdfAsync()}
+					onSelectCsv={() => {
+						const rows = InvoiceApi.downloadInvoiceCsv(data);
+						if (rows === 0) {
+							toast.error('No billable line items to export');
+						} else {
+							toast.success('Invoice CSV downloaded');
+						}
+					}}
+				/>
 				<div ref={invoiceref} className=' rounded-xl border border-gray-300 p-6'>
 					<div className='p-4'>
 						<div className='w-full flex justify-between items-center'>
 							<p className={cn(getTypographyClass('section-title'), 'text-xl mb-0')}>Invoice Details</p>
 							<div className='flex gap-4 items-center'>
-								<Button data-html2canvas-ignore='true' onClick={handleDownlaod}>
+								<Button data-html2canvas-ignore='true' onClick={() => setIsDownloadFormatOpen(true)}>
 									<Download />
 									<span>Download</span>
 								</Button>

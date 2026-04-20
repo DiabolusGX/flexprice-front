@@ -19,6 +19,8 @@ import { formatDateTimeWithSecondsAndTimezone } from '@/utils/common/format_date
 
 interface SubscriptionAddonsSectionProps {
 	subscriptionId: string;
+	/** When true, add/remove addon actions are disabled. */
+	readOnly?: boolean;
 }
 
 const getAddonTypeChip = (type: string) => {
@@ -140,7 +142,7 @@ const computeAssociationStatus = (association: AddonAssociationResponse): AddonS
 	return 'active';
 };
 
-const SubscriptionAddonsSection: FC<SubscriptionAddonsSectionProps> = ({ subscriptionId }) => {
+const SubscriptionAddonsSection: FC<SubscriptionAddonsSectionProps> = ({ subscriptionId, readOnly = false }) => {
 	const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	const [addonToDelete, setAddonToDelete] = useState<AddonAssociationResponse | null>(null);
@@ -272,42 +274,45 @@ const SubscriptionAddonsSection: FC<SubscriptionAddonsSectionProps> = ({ subscri
 				width: '30px',
 				fieldVariant: 'interactive',
 				hideOnEmpty: true,
-				render: (row) => (
-					<div
-						data-interactive='true'
-						onClick={(e) => {
-							e.preventDefault();
-							e.stopPropagation();
-						}}>
-						<DropdownMenu open={dropdownOpen === row.id} onOpenChange={(open) => setDropdownOpen(open ? row.id : null)}>
-							<DropdownMenuTrigger asChild>
-								<button className='focus:outline-none'>
-									<BsThreeDotsVertical className='text-base text-muted-foreground hover:text-foreground transition-colors' />
-								</button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align='end'>
-								<DropdownMenuItem
-									onSelect={(e) => {
-										e.preventDefault();
-										handleDelete(row);
-									}}
-									className='flex gap-2 items-center cursor-pointer text-red-600'>
-									<Trash2 className='h-4 w-4' />
-									<span>Delete</span>
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
-					</div>
-				),
+				render: (row) => {
+					if (readOnly) return null;
+					return (
+						<div
+							data-interactive='true'
+							onClick={(e) => {
+								e.preventDefault();
+								e.stopPropagation();
+							}}>
+							<DropdownMenu open={dropdownOpen === row.id} onOpenChange={(open) => setDropdownOpen(open ? row.id : null)}>
+								<DropdownMenuTrigger asChild>
+									<button className='focus:outline-none'>
+										<BsThreeDotsVertical className='text-base text-muted-foreground hover:text-foreground transition-colors' />
+									</button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align='end'>
+									<DropdownMenuItem
+										onSelect={(e) => {
+											e.preventDefault();
+											handleDelete(row);
+										}}
+										className='flex gap-2 items-center cursor-pointer text-red-600'>
+										<Trash2 className='h-4 w-4' />
+										<span>Delete</span>
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
+					);
+				},
 			},
 		],
-		[dropdownOpen, handleDelete],
+		[dropdownOpen, handleDelete, readOnly],
 	);
 
 	if (isLoading) {
 		return (
 			<Card variant='notched'>
-				<CardHeader title='Addons' cta={<AddButton onClick={() => setIsAddDialogOpen(true)} />} />
+				<CardHeader title='Addons' cta={<AddButton onClick={() => setIsAddDialogOpen(true)} disabled={readOnly} />} />
 				<div className='flex justify-center items-center py-8'>
 					<span className='text-gray-500'>Loading addons...</span>
 				</div>
@@ -323,14 +328,14 @@ const SubscriptionAddonsSection: FC<SubscriptionAddonsSectionProps> = ({ subscri
 		<>
 			{processedAddonAssociations.length > 0 ? (
 				<Card variant='notched'>
-					<CardHeader title='Addons' cta={<AddButton onClick={() => setIsAddDialogOpen(true)} label='Add Addon' />} />
+					<CardHeader title='Addons' cta={<AddButton onClick={() => setIsAddDialogOpen(true)} disabled={readOnly} />} />
 					<FlexpriceTable showEmptyRow data={processedAddonAssociations} columns={columns} variant='no-bordered' />
 				</Card>
 			) : (
 				<NoDataCard
 					title='Addons'
 					subtitle='No addons added to this subscription yet'
-					cta={<AddButton onClick={() => setIsAddDialogOpen(true)} label='Add Addon' />}
+					cta={<AddButton onClick={() => setIsAddDialogOpen(true)} disabled={readOnly} />}
 				/>
 			)}
 

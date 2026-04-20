@@ -1,5 +1,5 @@
 import { FC, useMemo } from 'react';
-import { Spacer, Button } from '@/components/atoms';
+import { Spacer, Button, Tooltip } from '@/components/atoms';
 import { DetailsCard, UpdateSubscriptionDrawer } from '@/components/molecules';
 import { getSubscriptionStatus } from '@/components/organisms/Subscription/SubscriptionTable';
 import { getCurrencySymbol } from '@/utils/common/helper_functions';
@@ -10,6 +10,7 @@ import { Pencil, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router';
 import type { SubscriptionResponse, UpdateSubscriptionRequest } from '@/types/dto/Subscription';
 import { SUBSCRIPTION_STATUS } from '@/models/Subscription';
+import { isInheritedSubscription } from '@/utils/subscription/isInheritedSubscription';
 
 /** Subscription edit page: details header and update drawer. */
 export interface SubscriptionEditDetailsHeaderProps {
@@ -29,6 +30,8 @@ const SubscriptionEditDetailsHeader: FC<SubscriptionEditDetailsHeaderProps> = ({
 	updateDrawerOpen,
 	onUpdateDrawerOpenChange,
 }) => {
+	const subscriptionReadOnly = isInheritedSubscription(subscription);
+
 	const detailsData = useMemo(
 		() => [
 			{ label: 'Plan', value: subscription?.plan?.name },
@@ -79,9 +82,26 @@ const SubscriptionEditDetailsHeader: FC<SubscriptionEditDetailsHeaderProps> = ({
 			<div className='flex justify-between items-center'>
 				<h3 className={getTypographyClass('card-header') + ' !text-[16px]'}>Subscription Details</h3>
 				{subscription?.subscription_status !== SUBSCRIPTION_STATUS.CANCELLED && (
-					<Button variant='outline' size='icon' onClick={() => onUpdateDrawerOpenChange(true)} title='Update subscription'>
-						<Pencil className='size-4' />
-					</Button>
+					<Tooltip
+						delayDuration={0}
+						content={
+							subscriptionReadOnly
+								? 'Inherited subscriptions mirror the parent; update the parent subscription instead.'
+								: 'Update subscription'
+						}>
+						<span className='inline-flex'>
+							<Button
+								variant='outline'
+								size='icon'
+								disabled={subscriptionReadOnly}
+								onClick={() => !subscriptionReadOnly && onUpdateDrawerOpenChange(true)}
+								title={
+									subscriptionReadOnly ? 'Inherited subscriptions are read-only; edit the parent subscription.' : 'Update subscription'
+								}>
+								<Pencil className='size-4' />
+							</Button>
+						</span>
+					</Tooltip>
 				)}
 			</div>
 			<Spacer className='!h-4' />
@@ -93,6 +113,7 @@ const SubscriptionEditDetailsHeader: FC<SubscriptionEditDetailsHeaderProps> = ({
 				subscription={subscription}
 				onSave={onUpdate}
 				isSaving={isUpdating}
+				readOnly={subscriptionReadOnly}
 			/>
 		</div>
 	);

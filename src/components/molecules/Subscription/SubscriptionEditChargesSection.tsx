@@ -20,6 +20,8 @@ export interface SubscriptionEditChargesSectionProps {
 	onAddCharge?: () => void;
 	/** Disable Add charge button (e.g. when subscription is cancelled/trialing). */
 	isAddChargeDisabled?: boolean;
+	/** When true, line item actions and add charge are disabled (e.g. inherited subscription). */
+	readOnly?: boolean;
 	/** Subscription-level commitment info to show on usage line items. */
 	commitmentInfo?: SubscriptionCommitmentInfo;
 }
@@ -33,8 +35,10 @@ const SubscriptionEditChargesSection: FC<SubscriptionEditChargesSectionProps> = 
 	onTerminateLineItem,
 	onAddCharge,
 	isAddChargeDisabled = false,
+	readOnly = false,
 	commitmentInfo,
 }) => {
+	const addDisabled = isAddChargeDisabled || readOnly;
 	const hasWithoutPhase = groupedLineItems.withoutPhase.length > 0;
 	const phaseIds = Object.keys(groupedLineItems.byPhase);
 	const hasPhases = phaseIds.length > 0;
@@ -55,7 +59,7 @@ const SubscriptionEditChargesSection: FC<SubscriptionEditChargesSectionProps> = 
 				<h3 className='text-lg font-semibold text-gray-900'>Charges</h3>
 				<span className='text-sm text-gray-500'>({count} items)</span>
 			</div>
-			{onAddCharge && <AddButton onClick={onAddCharge} disabled={isAddChargeDisabled} />}
+			{onAddCharge && <AddButton onClick={onAddCharge} disabled={addDisabled} />}
 		</div>
 	);
 
@@ -71,6 +75,7 @@ const SubscriptionEditChargesSection: FC<SubscriptionEditChargesSectionProps> = 
 						onTerminate={onTerminateLineItem}
 						hideCardWrapper={true}
 						commitmentInfo={commitmentInfo}
+						readOnly={readOnly}
 					/>
 				</Card>
 			)}
@@ -79,7 +84,7 @@ const SubscriptionEditChargesSection: FC<SubscriptionEditChargesSectionProps> = 
 				<NoDataCard
 					title='Charges'
 					subtitle='No charges found for this subscription yet'
-					cta={<AddButton onClick={onAddCharge} disabled={isAddChargeDisabled} />}
+					cta={<AddButton onClick={onAddCharge} disabled={addDisabled} />}
 				/>
 			)}
 
@@ -90,6 +95,7 @@ const SubscriptionEditChargesSection: FC<SubscriptionEditChargesSectionProps> = 
 					onEdit={onEditLineItem}
 					onTerminate={onTerminateLineItem}
 					commitmentInfo={commitmentInfo}
+					readOnly={readOnly}
 				/>
 			)}
 
@@ -117,6 +123,7 @@ const SubscriptionEditChargesSection: FC<SubscriptionEditChargesSectionProps> = 
 									onTerminate={onTerminateLineItem}
 									hideCardWrapper={true}
 									commitmentInfo={commitmentInfo}
+									readOnly={readOnly}
 								/>
 							</Card>
 						);

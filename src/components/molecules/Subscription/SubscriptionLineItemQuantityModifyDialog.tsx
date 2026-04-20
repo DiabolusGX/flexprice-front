@@ -5,6 +5,7 @@ import { buildQuantityChangeModifyRequest } from '@/utils/subscription/buildQuan
 import type { ExecuteSubscriptionModifyRequest } from '@/types/dto/Subscription';
 import type { FC } from 'react';
 import { useCallback, useEffect, useState } from 'react';
+import { Info } from 'lucide-react';
 import SubscriptionModifyPreviewSummary from './SubscriptionModifyPreviewSummary';
 import formatDate from '@/utils/common/format_date';
 import {
@@ -146,8 +147,7 @@ const SubscriptionLineItemQuantityModifyDialog: FC<SubscriptionLineItemQuantityM
 			description={
 				step === 'form' ? (
 					<span className='text-sm text-gray-600'>
-						Update quantity for <span className='font-medium text-gray-900'>{lineItem.display_name}</span>. Preview proration effects before
-						applying.
+						You are updating quantity for <span className='font-medium text-gray-900'>{lineItem.display_name}</span>.
 					</span>
 				) : undefined
 			}
@@ -156,31 +156,35 @@ const SubscriptionLineItemQuantityModifyDialog: FC<SubscriptionLineItemQuantityM
 			<div className={step === 'preview' ? 'space-y-4' : 'space-y-6'}>
 				{step === 'form' && (
 					<>
-						<div className='space-y-2'>
-							<Input
-								label='Quantity'
-								variant='text'
-								value={quantityInput}
-								onChange={(e) => setQuantityInput(e)}
-								placeholder='e.g. 10'
-								disabled={busy}
-							/>
-							{formError && <p className='text-sm text-red-600'>{formError}</p>}
-						</div>
-						<div className='space-y-2'>
-							<DatePicker
-								label='Effective date'
-								placeholder='Select date'
-								date={effectiveDate}
-								setDate={setEffectiveDate}
-								popoverTriggerClassName='w-full'
-								className='w-full'
-								disabled={busy}
-							/>
-							<p className='text-xs text-gray-500'>
-								Defaults to period start (arrear) or the last moment inside the current period (advance; period end is exclusive). Adjusted
-								so the charge is already active. Clear the date for immediate effect.
-							</p>
+						<div className='w-full space-y-5'>
+							<div className='space-y-2'>
+								<Input
+									label='Quantity'
+									variant='text'
+									value={quantityInput}
+									onChange={(e) => setQuantityInput(e)}
+									placeholder='e.g. 10'
+									disabled={busy}
+								/>
+								{formError && <p className='text-sm text-red-600'>{formError}</p>}
+							</div>
+							<div className='w-full space-y-3'>
+								<DatePicker
+									label='Effective date'
+									placeholder='Select date'
+									date={effectiveDate}
+									setDate={setEffectiveDate}
+									popoverTriggerClassName='w-full'
+									disabled={busy}
+								/>
+								<div className='flex w-full gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3.5'>
+									<Info className='mt-0.5 h-5 w-5 shrink-0 text-blue-600' aria-hidden />
+									<p className='min-w-0 flex-1 text-sm leading-relaxed text-blue-900'>
+										Defaults to the current period start for arrear charges, or the current period end for advance charges, ensuring the
+										charge takes effect this period. Clear the date to apply immediately.
+									</p>
+								</div>
+							</div>
 						</div>
 						<div className='flex justify-end gap-3 pt-2'>
 							<Button variant='outline' onClick={() => handleOpenChange(false)} disabled={busy}>

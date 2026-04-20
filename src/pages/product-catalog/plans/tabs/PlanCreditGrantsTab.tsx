@@ -14,6 +14,7 @@ import {
 	CREDIT_GRANT_CADENCE,
 	CREDIT_GRANT_PERIOD,
 	CREDIT_GRANT_SCOPE,
+	ENTITY_STATUS,
 } from '@/models';
 import { InternalCreditGrantRequest, CreateCreditGrantRequest } from '@/types/dto/CreditGrant';
 import { ServerError } from '@/core/axios/types';
@@ -32,6 +33,7 @@ const PlanCreditGrantsTab = () => {
 			return await CreditGrantApi.list({
 				plan_ids: [planId!],
 				scope: CREDIT_GRANT_SCOPE.PLAN,
+				status: ENTITY_STATUS.PUBLISHED,
 			});
 		},
 		enabled: !!planId,

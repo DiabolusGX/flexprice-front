@@ -1,16 +1,18 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import CustomerPortalApi from '@/api/CustomerPortalApi';
 import { portalInvoicesQueryKey } from '@/components/customer-portal/queryKeys';
 import { Card, Chip } from '@/components/atoms';
+import { InvoiceDownloadFormatDialog } from '@/components/molecules';
 import { Invoice, INVOICE_STATUS } from '@/models/Invoice';
 import { PAYMENT_STATUS } from '@/constants/payment';
 import { formatDateShort, getCurrencySymbol } from '@/utils/common/helper_functions';
 import { formatAmount } from '@/components/atoms/Input/Input';
-import { Download, Search } from 'lucide-react';
+import { Download, Loader2, Search } from 'lucide-react';
 import { Input } from '@/components/ui';
 import EmptyState from './EmptyState';
+import { downloadInvoiceLineItemsCsv } from '@/utils/invoices/downloadInvoiceLineItemsCsv';
 
 const getStatusChip = (invoice: Invoice) => {
 	// Check payment status first
@@ -37,6 +39,9 @@ const getStatusChip = (invoice: Invoice) => {
 
 const InvoicesTab = () => {
 	const [searchQuery, setSearchQuery] = useState('');
+	const [downloadTarget, setDownloadTarget] = useState<Invoice | null>(null);
+	const [isDownloadDialogOpen, setIsDownloadDialogOpen] = useState(false);
+	const [isCsvExportPending, setIsCsvExportPending] = useState(false);
 
 	const {
 		data: invoicesData,
@@ -45,6 +50,16 @@ const InvoicesTab = () => {
 	} = useQuery({
 		queryKey: portalInvoicesQueryKey,
 		queryFn: () => CustomerPortalApi.getInvoices({ limit: 100, offset: 0 }),
+	});
+
+	const { mutateAsync: downloadPortalPdfAsync, isPending: isPdfDownloadPending } = useMutation({
+		mutationFn: (invoiceId: string) => CustomerPortalApi.downloadInvoicePdf(invoiceId),
+		onSuccess: () => {
+			toast.success('Invoice downloaded');
+		},
+		onError: () => {
+			toast.error('Failed to download invoice');
+		},
 	});
 
 	if (isError) {
@@ -114,14 +129,12 @@ const InvoicesTab = () => {
 	const currency = invoices[0]?.currency || 'USD';
 	const currencySymbol = getCurrencySymbol(currency);
 
-	const handleDownloadPdf = async (invoice: Invoice) => {
-		try {
-			await CustomerPortalApi.downloadInvoicePdf(invoice.id);
-			toast.success('Invoice downloaded');
-		} catch {
-			toast.error('Failed to download invoice');
-		}
+	const openInvoiceDownload = (invoice: Invoice) => {
+		setDownloadTarget(invoice);
+		setIsDownloadDialogOpen(true);
 	};
+
+	const busyDownloadInvoiceId = isPdfDownloadPending || isCsvExportPending ? (downloadTarget?.id ?? null) : null;
 
 	if (invoices.length === 0) {
 		return (
@@ -133,6 +146,38 @@ const InvoicesTab = () => {
 
 	return (
 		<div className='space-y-6'>
+			<InvoiceDownloadFormatDialog
+				open={isDownloadDialogOpen}
+				onOpenChange={(open) => {
+					setIsDownloadDialogOpen(open);
+					if (!open) {
+						setDownloadTarget(null);
+					}
+				}}
+				isPdfPending={isPdfDownloadPending}
+				isCsvPending={isCsvExportPending}
+				onSelectPdf={async () => {
+					if (!downloadTarget) return;
+					await downloadPortalPdfAsync(downloadTarget.id);
+				}}
+				onSelectCsv={async () => {
+					if (!downloadTarget) return;
+					setIsCsvExportPending(true);
+					try {
+						const full = downloadTarget.line_items?.length ? downloadTarget : await CustomerPortalApi.getInvoice(downloadTarget.id);
+						const rows = downloadInvoiceLineItemsCsv(full);
+						if (rows === 0) {
+							toast.error('No billable line items to export');
+						} else {
+							toast.success('Invoice CSV downloaded');
+						}
+					} catch {
+						toast.error('Failed to export invoice');
+					} finally {
+						setIsCsvExportPending(false);
+					}
+				}}
+			/>
 			{/* Summary Cards */}
 			{/* <div className='grid grid-cols-2 gap-4'>
 				<Card className='bg-white border border-[#E9E9E9] rounded-xl p-4'>
@@ -204,9 +249,14 @@ const InvoicesTab = () => {
 									<td className='px-4 py-3 text-center'>
 										{invoice.invoice_status === INVOICE_STATUS.FINALIZED && (
 											<button
-												onClick={() => handleDownloadPdf(invoice)}
-												className='p-2 hover:bg-zinc-100 rounded-md transition-colors text-zinc-500 hover:text-zinc-700'>
-												<Download className='h-4 w-4' />
+												onClick={() => openInvoiceDownload(invoice)}
+												disabled={busyDownloadInvoiceId !== null}
+												className='p-2 hover:bg-zinc-100 rounded-md transition-colors text-zinc-500 hover:text-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed'>
+												{busyDownloadInvoiceId === invoice.id ? (
+													<Loader2 className='h-4 w-4 animate-spin' />
+												) : (
+													<Download className='h-4 w-4' />
+												)}
 											</button>
 										)}
 									</td>

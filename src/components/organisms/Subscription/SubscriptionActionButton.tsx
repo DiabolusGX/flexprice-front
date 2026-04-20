@@ -13,6 +13,7 @@ import { DatePicker, Label, Modal, Input, Button, FormHeader, Spacer, Select, To
 import { toast } from 'react-hot-toast';
 import DropdownMenu, { DropdownMenuOption } from '@/components/molecules/DropdownMenu/DropdownMenu';
 import { refetchQueries } from '@/core/services/tanstack/ReactQueryProvider';
+import { isInheritedSubscription } from '@/utils/subscription/isInheritedSubscription';
 import { addDays, format } from 'date-fns';
 import { useNavigate } from 'react-router';
 import { RouteNames } from '@/core/routes/Routes';
@@ -147,6 +148,7 @@ const SubscriptionActionButton: React.FC<Props> = ({ subscription }) => {
 	const isPaused = subscription.subscription_status.toUpperCase() === 'PAUSED';
 	const isCancelled = subscription.subscription_status.toUpperCase() === 'CANCELLED';
 	const isDraft = subscription.subscription_status === SUBSCRIPTION_STATUS.DRAFT;
+	const readOnly = isInheritedSubscription(subscription);
 
 	const menuOptions: DropdownMenuOption[] = [
 		...(isDraft
@@ -155,6 +157,7 @@ const SubscriptionActionButton: React.FC<Props> = ({ subscription }) => {
 						label: 'Activate Subscription',
 						icon: <Play className='h-4 w-4' />,
 						onSelect: () => setState((prev) => ({ ...prev, isActivateModalOpen: true })),
+						disabled: readOnly,
 					},
 				]
 			: []),
@@ -162,7 +165,7 @@ const SubscriptionActionButton: React.FC<Props> = ({ subscription }) => {
 			label: 'Edit Subscription',
 			icon: <Pencil className='h-4 w-4' />,
 			onSelect: () => navigate(`${RouteNames.subscriptions}/${subscription.id}/edit`),
-			disabled: isCancelled,
+			disabled: isCancelled || readOnly,
 		},
 		...(!isPaused && !isCancelled && !isDraft
 			? [
@@ -170,13 +173,13 @@ const SubscriptionActionButton: React.FC<Props> = ({ subscription }) => {
 						label: 'Pause Subscription',
 						icon: <CirclePause className='h-4 w-4' />,
 						onSelect: () => setState((prev) => ({ ...prev, isPauseModalOpen: true })),
-						disabled: isPaused || isCancelled,
+						disabled: isPaused || isCancelled || readOnly,
 					},
 					{
 						label: 'Add Subscription Phase',
 						icon: <Plus className='h-4 w-4' />,
 						onSelect: () => setState((prev) => ({ ...prev, isAddPhaseModalOpen: true })),
-						disabled: isPaused || isCancelled,
+						disabled: isPaused || isCancelled || readOnly,
 					},
 				]
 			: []),
@@ -186,7 +189,7 @@ const SubscriptionActionButton: React.FC<Props> = ({ subscription }) => {
 						label: 'Resume Subscription',
 						icon: <CirclePlay className='h-4 w-4' />,
 						onSelect: () => setState((prev) => ({ ...prev, isResumeModalOpen: true })),
-						disabled: isCancelled,
+						disabled: isCancelled || readOnly,
 					},
 				]
 			: []),
@@ -194,7 +197,7 @@ const SubscriptionActionButton: React.FC<Props> = ({ subscription }) => {
 			label: 'Cancel Subscription',
 			icon: <X className='h-4 w-4' />,
 			onSelect: () => setState((prev) => ({ ...prev, isCancelModalOpen: true })),
-			disabled: isCancelled,
+			disabled: isCancelled || readOnly,
 			className: 'text-destructive',
 		},
 	];

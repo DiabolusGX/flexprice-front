@@ -3,6 +3,7 @@ import { Invoice } from '@/models';
 import { generateQueryParams } from '@/utils/common/api_helper';
 import AuthService from '@/core/auth/AuthService';
 import EnvironmentApi from '@/api/EnvironmentApi';
+import { SortDirection } from '@/types/common/QueryBuilder';
 import {
 	GetInvoicesResponse,
 	InvoiceFilter,
@@ -13,6 +14,7 @@ import {
 	VoidInvoicePayload,
 	RecalculateInvoiceResponse,
 } from '@/types/dto';
+import { downloadInvoiceLineItemsCsv } from '@/utils/invoices/downloadInvoiceLineItemsCsv';
 
 class InvoiceApi {
 	private static baseurl = '/invoices';
@@ -24,7 +26,15 @@ class InvoiceApi {
 
 	/** List invoices for a single customer. Uses listInvoices with customer_id filter. */
 	public static async getCustomerInvoices(customerId: string): Promise<GetInvoicesResponse> {
-		return await this.listInvoices({ customer_id: customerId });
+		return await this.listInvoices({
+			customer_id: customerId,
+			sort: [
+				{
+					field: 'period_start',
+					direction: SortDirection.DESC,
+				},
+			],
+		});
 	}
 
 	public static async getInvoiceById(invoiceId: string): Promise<Invoice> {
@@ -107,6 +117,11 @@ class InvoiceApi {
 		const presignedUrl = response.presigned_url;
 
 		window.open(presignedUrl, '_blank');
+	}
+
+	/** Client-side CSV of line items with amount > 0; triggers download. @returns row count, or 0 if nothing to export */
+	public static downloadInvoiceCsv(invoice: Invoice): number {
+		return downloadInvoiceLineItemsCsv(invoice);
 	}
 
 	public static async triggerCommunication(invoiceId: string) {

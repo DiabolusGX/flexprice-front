@@ -1,6 +1,7 @@
 import { Invoice, INVOICE_STATUS, INVOICE_TYPE } from '@/models/Invoice';
 import { FC, useState } from 'react';
 import { DropdownMenu, RecordPaymentTopup } from '..';
+import InvoiceDownloadFormatDialog from '../InvoiceDownloadFormatDialog/InvoiceDownloadFormatDialog';
 import { DropdownMenuOption } from '../DropdownMenu/DropdownMenu';
 import { useMutation } from '@tanstack/react-query';
 import InvoiceApi from '@/api/InvoiceApi';
@@ -35,7 +36,7 @@ const InvoiceTableMenu: FC<Props> = ({ data }) => {
 		},
 	});
 
-	const { mutate: downloadInvoice } = useMutation({
+	const { mutateAsync: downloadInvoicePdfAsync, isPending: isPdfDownloadPending } = useMutation({
 		mutationFn: async (invoice_id: string) => {
 			return await InvoiceApi.downloadInvoicePdf(invoice_id);
 		},
@@ -62,6 +63,8 @@ const InvoiceTableMenu: FC<Props> = ({ data }) => {
 		},
 	});
 
+	const [isDownloadFormatOpen, setIsDownloadFormatOpen] = useState(false);
+
 	const [state, setState] = useState<{
 		isPaymentModalOpen: boolean;
 		isStatusModalOpen: boolean;
@@ -78,7 +81,7 @@ const InvoiceTableMenu: FC<Props> = ({ data }) => {
 			label: 'Download Invoice',
 			group: 'Actions',
 			onSelect: () => {
-				downloadInvoice(data.id);
+				setIsDownloadFormatOpen(true);
 			},
 		},
 		{
@@ -168,6 +171,20 @@ const InvoiceTableMenu: FC<Props> = ({ data }) => {
 	};
 	return (
 		<div>
+			<InvoiceDownloadFormatDialog
+				open={isDownloadFormatOpen}
+				onOpenChange={setIsDownloadFormatOpen}
+				isPdfPending={isPdfDownloadPending}
+				onSelectPdf={() => downloadInvoicePdfAsync(data.id)}
+				onSelectCsv={() => {
+					const rows = InvoiceApi.downloadInvoiceCsv(data);
+					if (rows === 0) {
+						toast.error('No billable line items to export');
+					} else {
+						toast.success('Invoice CSV downloaded');
+					}
+				}}
+			/>
 			<InvoiceStatusModal
 				invoice={state.activeInvoice}
 				isOpen={state.isStatusModalOpen}

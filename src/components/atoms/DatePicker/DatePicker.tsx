@@ -79,16 +79,19 @@ const DatePicker = ({
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
-			<PopoverTrigger className={popoverTriggerClassName} disabled={disabled}>
-				{label && <div className={cn('mb-1 w-full text-start text-sm ', labelClassName)}>{label}</div>}
-				<Button
-					variant='outline'
-					className={cn('min-w-[240px] h-10 justify-start text-left font-normal py-1', !date && 'text-muted-foreground', className)}
-					disabled={disabled}>
-					<CalendarIcon className='mr-2 h-4 w-4' />
-					{displayLabel}
-				</Button>
-			</PopoverTrigger>
+			<div className={cn('flex w-full flex-col', popoverTriggerClassName)}>
+				{label && <div className={cn('mb-1 w-full text-start text-sm', labelClassName)}>{label}</div>}
+				<PopoverTrigger asChild disabled={disabled}>
+					<Button
+						variant='outline'
+						className={cn('h-10 w-full min-w-0 justify-start text-left font-normal py-1', !date && 'text-muted-foreground', className)}
+						disabled={disabled}
+						type='button'>
+						<CalendarIcon className='mr-2 h-4 w-4 shrink-0' />
+						<span className='min-w-0 truncate'>{displayLabel}</span>
+					</Button>
+				</PopoverTrigger>
+			</div>
 			<PopoverContent className={cn('w-auto p-0 z-[60] pointer-events-auto', popoverClassName, popoverContentClassName)} align='start'>
 				<Calendar
 					mode='single'

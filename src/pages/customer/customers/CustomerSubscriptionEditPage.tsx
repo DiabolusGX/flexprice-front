@@ -1,10 +1,11 @@
-import { FormHeader, Loader, Page, Spacer } from '@/components/atoms';
+import { Loader, Page, Spacer } from '@/components/atoms';
 import {
 	SubscriptionEntitlementsSection,
 	SubscriptionAddonsSection,
 	SubscriptionEditDetailsHeader,
 	SubscriptionEditChargesSection,
 	SubscriptionEditCreditGrantsSection,
+	SubscriptionEditInheritingCustomersSection,
 	SubscriptionLineItemQuantityModifyDialog,
 } from '@/components/molecules';
 import { useBreadcrumbsStore } from '@/store/useBreadcrumbsStore';
@@ -12,11 +13,10 @@ import CustomerApi from '@/api/CustomerApi';
 import SubscriptionApi from '@/api/SubscriptionApi';
 import CreditGrantApi from '@/api/CreditGrantApi';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import FlexpriceTable, { ColumnData, RedirectCell } from '@/components/molecules/Table';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useParams } from 'react-router';
-import { LineItem, SUBSCRIPTION_LINE_ITEM_EDIT_MODE, SUBSCRIPTION_STATUS } from '@/models/Subscription';
+import { LineItem, SUBSCRIPTION_LINE_ITEM_EDIT_MODE, SUBSCRIPTION_STATUS, SUBSCRIPTION_TYPE } from '@/models/Subscription';
 import { PRICE_TYPE } from '@/models/Price';
 import PriceOverrideDialog from '@/components/molecules/PriceOverrideDialog/PriceOverrideDialog';
 import AddSubscriptionChargeDialog, {
@@ -27,12 +27,10 @@ import {
 	DeleteSubscriptionLineItemRequest,
 	UpdateSubscriptionLineItemRequest,
 	UpdateSubscriptionRequest,
-	SubscriptionResponse,
 } from '@/types/dto/Subscription';
 import { DataType, FilterOperator } from '@/types/common/QueryBuilder';
 import { EXPAND } from '@/models';
 import { generateExpandQueryParams } from '@/utils/common/api_helper';
-import formatDate from '@/utils/common/format_date';
 import { ExtendedPriceOverride } from '@/utils/common/price_override_helpers';
 import { convertPriceOverrideToLineItemUpdate } from '@/utils/subscription/priceOverrideToLineItemUpdate';
 import { getPriceTypeFromLineItem, lineItemToPrice } from '@/utils/subscription/lineItemToPrice';
@@ -100,7 +98,7 @@ const CustomerSubscriptionEditPage: React.FC = () => {
 			!!subscriptionId,
 	});
 
-	const { data: inheritedSubscriptionsData } = useQuery({
+	const { data: inheritedSubscriptionsData, isLoading: isInheritedSubscriptionsLoading } = useQuery({
 		queryKey: ['inheritedSubscriptions', subscriptionId, 'plan+customer'],
 		queryFn: async () =>
 			SubscriptionApi.searchSubscriptions({
@@ -121,33 +119,9 @@ const CustomerSubscriptionEditPage: React.FC = () => {
 
 	const inheritedSubscriptionRows = inheritedSubscriptionsData?.items ?? [];
 
-	const inheritedSubscriptionsColumns = useMemo<ColumnData<SubscriptionResponse>[]>(
-		() => [
-			{
-				title: 'Customer',
-				render: (row) => (
-					<RedirectCell redirectUrl={`${RouteNames.customers}/${row.customer_id}`}>{row.customer?.name ?? '—'}</RedirectCell>
-				),
-			},
-			{
-				title: 'Plan',
-				render: (row) => (
-					<RedirectCell redirectUrl={`${RouteNames.customers}/${row.customer_id}/subscription/${row.id}`}>
-						{row.plan?.name ?? '—'}
-					</RedirectCell>
-				),
-			},
-			{
-				title: 'Start date',
-				render: (row) => <span className='text-muted-foreground'>{formatDate(row.start_date)}</span>,
-			},
-			{
-				title: 'Renewal date',
-				render: (row) => <span className='text-muted-foreground'>{formatDate(row.current_period_end)}</span>,
-			},
-		],
-		[],
-	);
+	const isParentSubscription = subscriptionDetails?.subscription_type?.toLowerCase() === SUBSCRIPTION_TYPE.PARENT;
+	const showInheritingCustomersSection =
+		!!subscriptionDetails?.customer_id && (isParentSubscription || inheritedSubscriptionRows.length > 0);
 
 	const { mutate: updateLineItem } = useMutation({
 		mutationFn: async ({ lineItemId, updateData }: { lineItemId: string; updateData: UpdateSubscriptionLineItemRequest }) => {
@@ -346,14 +320,19 @@ const CustomerSubscriptionEditPage: React.FC = () => {
 					updateDrawerOpen={updateSubscriptionDrawerOpen}
 					onUpdateDrawerOpenChange={setUpdateSubscriptionDrawerOpen}
 				/>
+				<Spacer height={16} />
 
-				{inheritedSubscriptionRows.length > 0 && (
-					<div className='space-y-4'>
-						<FormHeader className='mb-0' title='Inherited subscriptions' variant='sub-header' />
-						<div className='rounded-[6px] border border-gray-300'>
-							<FlexpriceTable data={inheritedSubscriptionRows} columns={inheritedSubscriptionsColumns} />
-						</div>
-					</div>
+				{showInheritingCustomersSection && (
+					<SubscriptionEditInheritingCustomersSection
+						parentSubscriptionId={subscriptionId!}
+						parentCustomerId={subscriptionDetails.customer_id}
+						inheritingSubscriptions={inheritedSubscriptionRows}
+						isListLoading={isInheritedSubscriptionsLoading}
+						isAddDisabled={
+							subscriptionDetails.subscription_status === SUBSCRIPTION_STATUS.CANCELLED ||
+							subscriptionDetails.subscription_status === SUBSCRIPTION_STATUS.TRIALING
+						}
+					/>
 				)}
 
 				<SubscriptionEditChargesSection

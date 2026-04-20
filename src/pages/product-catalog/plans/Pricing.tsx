@@ -13,7 +13,19 @@ import { GetAllPlansResponse } from '@/api/PlanApi';
 import { PricingCard, type PricingCardProps } from '@/components/molecules';
 import { ApiDocsContent } from '@/components/molecules';
 import { PlanDrawer } from '@/components/molecules';
-import { Price, BILLING_PERIOD, INVOICE_CADENCE, PRICE_TYPE, ENTITLEMENT_ENTITY_TYPE, PRICE_ENTITY_TYPE, ENTITY_STATUS } from '@/models';
+import {
+	Price,
+	BILLING_PERIOD,
+	INVOICE_CADENCE,
+	PRICE_TYPE,
+	ENTITLEMENT_ENTITY_TYPE,
+	PRICE_ENTITY_TYPE,
+	ENTITY_STATUS,
+	CREDIT_GRANT_SCOPE,
+	CREDIT_GRANT_CADENCE,
+	type CreditGrant,
+} from '@/models';
+import CreditGrantApi from '@/api/CreditGrantApi';
 import { generateExpandQueryParams } from '@/utils/common/api_helper';
 import { EXPAND } from '@/models/expand';
 
@@ -84,6 +96,21 @@ const getPriceDisplayType = (prices: PriceType[]): PlanType => {
 	// Default to usage-only if nothing else matches
 	return PlanType.USAGE_ONLY;
 };
+
+function grantPlanId(grant: CreditGrant, fallbackPlanId: string): string {
+	const g = grant as CreditGrant & { planId?: string };
+	return grant.plan_id ?? g.planId ?? fallbackPlanId;
+}
+
+function mapCreditGrantToCardProps(grant: CreditGrant): NonNullable<PricingCardProps['creditGrants']>[number] {
+	const cadence = grant.cadence === CREDIT_GRANT_CADENCE.RECURRING ? ('recurring' as const) : ('onetime' as const);
+	return {
+		name: grant.name,
+		credits: grant.credits,
+		cadence,
+		period: grant.period ? grant.period.toLowerCase() : null,
+	};
+}
 
 const findBestPriceCombination = (
 	plans: Array<PlanResponse & { prices: PriceResponse[]; entitlements: EntitlementResponse[] }>,
@@ -177,6 +204,9 @@ const PricingPage = () => {
 	});
 
 	const PAGE_SIZE = 500;
+	/** Per-plan list calls match PlanCreditGrantsTab; multi-ID GET can be unreliable on some backends. */
+	const PLAN_CREDIT_GRANT_FETCH_CHUNK = 12;
+	const PLAN_CREDIT_GRANT_LIST_LIMIT = 500;
 
 	// Fetch all prices for all plans (paginated until no more pages)
 	const {
@@ -274,8 +304,49 @@ const PricingPage = () => {
 		enabled: !!plansData?.items && plansData.items.length > 0,
 	});
 
-	const isLoading = isLoadingPlans || isLoadingPrices || isLoadingEntitlements;
-	const isError = isErrorPlans || isErrorPrices || isErrorEntitlements;
+	const planIdsForGrantsKey = plansData?.items?.map((p) => p.id).join('\0') ?? '';
+
+	const {
+		data: planCreditGrantsData,
+		isLoading: isLoadingPlanCreditGrants,
+		isError: isErrorPlanCreditGrants,
+	} = useQuery({
+		queryKey: ['fetchPlanCreditGrantsForPricingWidgets', planIdsForGrantsKey],
+		queryFn: async () => {
+			if (!plansData?.items?.length) return { items: [] as CreditGrant[] };
+
+			const planIds = plansData.items.map((p) => p.id);
+			const merged: CreditGrant[] = [];
+
+			for (let i = 0; i < planIds.length; i += PLAN_CREDIT_GRANT_FETCH_CHUNK) {
+				const chunk = planIds.slice(i, i + PLAN_CREDIT_GRANT_FETCH_CHUNK);
+				const chunkResults = await Promise.all(
+					chunk.map(async (planId) => {
+						const res = await CreditGrantApi.list({
+							plan_ids: [planId],
+							scope: CREDIT_GRANT_SCOPE.PLAN,
+							limit: PLAN_CREDIT_GRANT_LIST_LIMIT,
+							offset: 0,
+						});
+						return { planId, res };
+					}),
+				);
+
+				for (const { planId, res } of chunkResults) {
+					for (const grant of res.items) {
+						const resolvedPlanId = grantPlanId(grant, planId);
+						merged.push({ ...grant, plan_id: resolvedPlanId } as CreditGrant);
+					}
+				}
+			}
+
+			return { items: merged };
+		},
+		enabled: !!plansData?.items && plansData.items.length > 0,
+	});
+
+	const isLoading = isLoadingPlans || isLoadingPrices || isLoadingEntitlements || isLoadingPlanCreditGrants;
+	const isError = isErrorPlans || isErrorPrices || isErrorEntitlements || isErrorPlanCreditGrants;
 
 	// Create a map of plan IDs to their prices and entitlements
 	const planDataMap = useMemo(() => {
@@ -295,6 +366,18 @@ const PricingPage = () => {
 
 		return map;
 	}, [plansData, allPricesData, allEntitlementsData]);
+
+	const grantsByPlanId = useMemo(() => {
+		const map = new Map<string, CreditGrant[]>();
+		for (const grant of planCreditGrantsData?.items ?? []) {
+			const planId = grantPlanId(grant, '');
+			if (!planId) continue;
+			const list = map.get(planId) ?? [];
+			list.push(grant);
+			map.set(planId, list);
+		}
+		return map;
+	}, [planCreditGrantsData?.items]);
 
 	// Combine plans with their prices and entitlements
 	const plansWithData = useMemo(() => {
@@ -457,6 +540,7 @@ const PricingPage = () => {
 					description: e.feature?.description,
 					usage_reset_period: e.usage_reset_period || '',
 				})) || [],
+			creditGrants: (grantsByPlanId.get(plan.id) ?? []).map(mapCreditGrantToCardProps),
 		};
 	});
 
@@ -484,25 +568,12 @@ const PricingPage = () => {
 					<ApiDocsContent tags={['Plans', 'Prices']} />
 					<div className='flex flex-col items-center mt-6'>
 						{/* 3 Dotted Placeholder Boxes */}
-						<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full mb-16'>
+						<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 w-full mb-16'>
 							{[1, 2, 3].map((index) => (
-								<div key={index} className='w-full rounded-3xl bg-white p-6 min-h-[280px] flex items-center justify-center relative'>
-									<svg className='absolute inset-0 w-full h-full pointer-events-none' style={{ borderRadius: '6px' }}>
-										<rect
-											x='1'
-											y='1'
-											width='calc(100% - 1.5px)'
-											height='calc(100% - 1.5px)'
-											rx='24'
-											ry='24'
-											fill='none'
-											stroke='#e3e3e3'
-											strokeWidth='1.5'
-											strokeDasharray='12 5'
-										/>
-									</svg>
-									<div className='text-gray-400 text-sm'></div>
-								</div>
+								<div
+									key={index}
+									className='min-h-[260px] w-full rounded-2xl border-2 border-dashed border-slate-300 bg-gradient-to-b from-white to-slate-50/90 p-6 shadow-sm'
+								/>
 							))}
 						</div>
 
@@ -543,11 +614,11 @@ const PricingPage = () => {
 			{/* filters */}
 
 			<div className='flex flex-col'>
-				<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
+				<div className='grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6 lg:grid-cols-3 lg:gap-6'>
 					<div className='contents'>
 						{transformedPlans.map((plan, index) => (
 							<div className='w-full flex' key={index}>
-								<PricingCard {...plan} className='w-full' />
+								<PricingCard {...plan} className='w-full' useModernChrome />
 							</div>
 						))}
 					</div>

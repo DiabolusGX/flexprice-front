@@ -51,6 +51,7 @@ export {
 	SubscriptionEditDetailsHeader,
 	SubscriptionEditChargesSection,
 	SubscriptionEditCreditGrantsSection,
+	SubscriptionEditInheritingCustomersSection,
 	SubscriptionLineItemQuantityModifyDialog,
 	type SubscriptionLineItemQuantityModifyDialogProps,
 	SubscriptionModifyPreviewSummary,

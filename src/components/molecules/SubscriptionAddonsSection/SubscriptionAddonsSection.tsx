@@ -323,14 +323,14 @@ const SubscriptionAddonsSection: FC<SubscriptionAddonsSectionProps> = ({ subscri
 		<>
 			{processedAddonAssociations.length > 0 ? (
 				<Card variant='notched'>
-					<CardHeader title='Addons' cta={<AddButton onClick={() => setIsAddDialogOpen(true)} label='Add Addon' />} />
+					<CardHeader title='Addons' cta={<AddButton onClick={() => setIsAddDialogOpen(true)} />} />
 					<FlexpriceTable showEmptyRow data={processedAddonAssociations} columns={columns} variant='no-bordered' />
 				</Card>
 			) : (
 				<NoDataCard
 					title='Addons'
 					subtitle='No addons added to this subscription yet'
-					cta={<AddButton onClick={() => setIsAddDialogOpen(true)} label='Add Addon' />}
+					cta={<AddButton onClick={() => setIsAddDialogOpen(true)} />}
 				/>
 			)}
 

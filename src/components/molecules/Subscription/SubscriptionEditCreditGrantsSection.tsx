@@ -105,7 +105,7 @@ const SubscriptionEditCreditGrantsSection: FC<SubscriptionEditCreditGrantsSectio
 						<AddButton onClick={onAddClick} disabled={isAddDisabled} />
 					</div>
 					<div className='mt-4'>
-						<FlexpriceTable showEmptyRow={false} data={creditGrants} columns={columns} />
+						<FlexpriceTable showEmptyRow={false} data={creditGrants} columns={columns} variant='no-bordered' />
 					</div>
 				</Card>
 			) : (

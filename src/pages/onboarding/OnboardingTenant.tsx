@@ -44,6 +44,7 @@ const referralSourceOptions: SelectOption[] = [
 	{ value: 'ChatGPT / Perplexity / Gemini', label: 'ChatGPT / Perplexity / Gemini' },
 	{ value: 'HackerNews', label: 'HackerNews' },
 	{ value: 'Product Hunt', label: 'Product Hunt' },
+	{ value: 'Reddit', label: 'Reddit' },
 ];
 
 const pricingTypeOptions: SelectOption[] = [

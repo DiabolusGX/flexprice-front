@@ -1,9 +1,8 @@
 import { FC } from 'react';
 import FlexpriceTable, { ColumnData } from '../Table';
-import Addon, { ADDON_TYPE } from '@/models/Addon';
+import Addon from '@/models/Addon';
 import { ENTITY_STATUS } from '@/models';
 import { ActionButton, Chip } from '@/components/atoms';
-import { toSentenceCase } from '@/utils/common/helper_functions';
 import formatChips from '@/utils/common/format_chips';
 import formatDate from '@/utils/common/format_date';
 import { useNavigate } from 'react-router';
@@ -14,19 +13,6 @@ interface Props {
 	data: Addon[];
 	onEdit?: (addon: Addon) => void;
 }
-
-export const getAddonTypeChips = (type: string) => {
-	switch (type.toLocaleLowerCase()) {
-		case ADDON_TYPE.ONETIME: {
-			return <Chip textColor='#4B5563' bgColor='#F3F4F6' label={toSentenceCase(type)} className='text-xs' />;
-		}
-		case ADDON_TYPE.MULTIPLE:
-		case ADDON_TYPE.MULTIPLE_INSTANCE:
-			return <Chip textColor='#1E40AF' bgColor='#DBEAFE' label={toSentenceCase(type)} className='text-xs' />;
-		default:
-			return <Chip textColor='#6B7280' bgColor='#F9FAFB' label={toSentenceCase(type)} className='text-xs' />;
-	}
-};
 
 const AddonTable: FC<Props> = ({ data, onEdit }) => {
 	const navigate = useNavigate();
@@ -39,12 +25,6 @@ const AddonTable: FC<Props> = ({ data, onEdit }) => {
 		{
 			fieldName: 'lookup_key',
 			title: 'Lookup Key',
-		},
-		{
-			title: 'Type',
-			render(row) {
-				return getAddonTypeChips(row?.type || '');
-			},
 		},
 		{
 			title: 'Status',

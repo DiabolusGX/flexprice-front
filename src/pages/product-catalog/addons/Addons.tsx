@@ -2,7 +2,7 @@ import { AddButton, Page, ActionButton, Chip } from '@/components/atoms';
 import { ApiDocsContent, AddonDrawer } from '@/components/molecules';
 import { ColumnData } from '@/components/molecules/Table';
 import { QueryableDataArea } from '@/components/organisms';
-import Addon, { ADDON_TYPE } from '@/models/Addon';
+import Addon from '@/models/Addon';
 import GUIDES from '@/constants/guides';
 import { useState, useMemo } from 'react';
 import AddonApi from '@/api/AddonApi';
@@ -19,7 +19,6 @@ import {
 import { ENTITY_STATUS } from '@/models';
 import { useNavigate } from 'react-router';
 import { RouteNames } from '@/core/routes/Routes';
-import { toSentenceCase } from '@/utils/common/helper_functions';
 import formatChips from '@/utils/common/format_chips';
 import formatDate from '@/utils/common/format_date';
 
@@ -74,17 +73,6 @@ const filterOptions: FilterField[] = [
 			{ value: ENTITY_STATUS.ARCHIVED, label: 'Inactive' },
 		],
 	},
-	{
-		field: 'type',
-		label: 'Type',
-		fieldType: FilterFieldType.MULTI_SELECT,
-		operators: DEFAULT_OPERATORS_PER_DATA_TYPE[DataType.ARRAY],
-		dataType: DataType.ARRAY,
-		options: [
-			{ value: ADDON_TYPE.ONETIME, label: 'One Time' },
-			{ value: ADDON_TYPE.MULTIPLE_INSTANCE, label: 'Multiple Instance' },
-		],
-	},
 ];
 
 const initialFilters: FilterCondition[] = [
@@ -112,19 +100,6 @@ const initialSorts: SortOption[] = [
 	},
 ];
 
-const getAddonTypeChips = (type: string) => {
-	switch (type.toLocaleLowerCase()) {
-		case ADDON_TYPE.ONETIME: {
-			return <Chip textColor='#4B5563' bgColor='#F3F4F6' label={toSentenceCase(type)} className='text-xs' />;
-		}
-		case ADDON_TYPE.MULTIPLE:
-		case ADDON_TYPE.MULTIPLE_INSTANCE:
-			return <Chip textColor='#1E40AF' bgColor='#DBEAFE' label={toSentenceCase(type)} className='text-xs' />;
-		default:
-			return <Chip textColor='#6B7280' bgColor='#F9FAFB' label={toSentenceCase(type)} className='text-xs' />;
-	}
-};
-
 const AddonsPage = () => {
 	const [activeAddon, setActiveAddon] = useState<Addon | null>(null);
 	const [addonDrawerOpen, setAddonDrawerOpen] = useState(false);
@@ -149,12 +124,6 @@ const AddonsPage = () => {
 			{
 				fieldName: 'lookup_key',
 				title: 'Lookup Key',
-			},
-			{
-				title: 'Type',
-				render(row) {
-					return getAddonTypeChips(row?.type || '');
-				},
 			},
 			{
 				title: 'Status',

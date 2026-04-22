@@ -16,7 +16,6 @@ import { Card } from '@/components/atoms';
 import formatChips from '@/utils/common/format_chips';
 import { ChargeValueCell } from '@/components/molecules';
 import { BILLING_PERIOD } from '@/constants/constants';
-import { ADDON_TYPE } from '@/models/Addon';
 import { FEATURE_TYPE } from '@/models/Feature';
 import { getFeatureTypeChips } from '@/components/molecules/CustomerUsageTable/CustomerUsageTable';
 import { formatAmount } from '@/components/atoms/Input/Input';
@@ -217,7 +216,6 @@ const AddonDetails = () => {
 	const addonDetails = [
 		{ label: 'Addon Name', value: addonData?.name },
 		{ label: 'Lookup Key', value: addonData?.lookup_key },
-		{ label: 'Type', value: addonData?.type === ADDON_TYPE.ONETIME ? 'One Time' : 'Multiple Instance' },
 		{
 			label: 'Status',
 			value: (

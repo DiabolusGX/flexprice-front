@@ -1,13 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Button, Select } from '@/components/atoms';
+import { Button, DatePicker, Select } from '@/components/atoms';
 import Dialog from '@/components/atoms/Dialog';
 import AddonApi from '@/api/AddonApi';
 import SubscriptionApi from '@/api/SubscriptionApi';
 import { toSentenceCase } from '@/utils/common/helper_functions';
-import { ADDON_TYPE } from '@/models/Addon';
-import { AddAddonRequest } from '@/types/dto/Subscription';
-import { AddonResponse } from '@/types/dto/Addon';
+import { AddAddonRequest, SubscriptionResponse } from '@/types/dto/Subscription';
+import { AddonResponse, ADDON_CADENCE, ADDON_PRORATION_BEHAVIOR } from '@/types/dto/Addon';
 import toast from 'react-hot-toast';
 import { refetchQueries } from '@/core/services/tanstack/ReactQueryProvider';
 import { ColumnData, FlexpriceTable } from '@/components/molecules';
@@ -17,12 +16,13 @@ import { LineItemCommitmentConfig, LineItemCommitmentsMap } from '@/types/dto/Li
 import CommitmentConfigDialog from '@/components/molecules/CommitmentConfigDialog';
 import { formatCommitmentSummary } from '@/utils/common/commitment_helpers';
 import { isOneTimePlanPrice } from '@/utils/subscription/planPricesForSubscriptionUi';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-react';
 
 interface Props {
 	isOpen: boolean;
 	onOpenChange: (open: boolean) => void;
 	subscriptionId: string;
-	existingAddons: AddonResponse[];
 	billingPeriod?: BILLING_PERIOD;
 	currency?: string;
 }
@@ -31,13 +31,25 @@ interface FormErrors {
 	addon_id?: string;
 }
 
-const AddAddonDialog: React.FC<Props> = ({ isOpen, onOpenChange, subscriptionId, existingAddons, billingPeriod, currency }) => {
+const AddAddonDialog: React.FC<Props> = ({ isOpen, onOpenChange, subscriptionId, billingPeriod, currency }) => {
 	const [formData, setFormData] = useState<Partial<AddAddonRequest>>({});
 	const [errors, setErrors] = useState<FormErrors>({});
 	const [selectedAddonDetails, setSelectedAddonDetails] = useState<AddonResponse | null>(null);
 	const [lineItemCommitments, setLineItemCommitments] = useState<LineItemCommitmentsMap>({});
 	const [selectedCommitmentPrice, setSelectedCommitmentPrice] = useState<Price | null>(null);
 	const [isCommitmentDialogOpen, setIsCommitmentDialogOpen] = useState(false);
+	const [advancedOpen, setAdvancedOpen] = useState(false);
+	const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+	const [cadence, setCadence] = useState<ADDON_CADENCE | ''>('');
+	const [prorationBehavior, setProrationBehavior] = useState<ADDON_PRORATION_BEHAVIOR | ''>('');
+
+	const { data: subscriptionDetails } = useQuery({
+		queryKey: ['subscriptionDetailsForAddAddonDialog', subscriptionId],
+		queryFn: async () => {
+			return await SubscriptionApi.getSubscription(subscriptionId);
+		},
+		enabled: !!subscriptionId && isOpen,
+	});
 
 	// Fetch available addons
 	const { data: addonsResponse } = useQuery({
@@ -46,8 +58,6 @@ const AddAddonDialog: React.FC<Props> = ({ isOpen, onOpenChange, subscriptionId,
 			return await AddonApi.List({ limit: 1000, offset: 0 });
 		},
 	});
-
-	const existingAddonIds = useMemo(() => existingAddons.map((addon) => addon.id), [existingAddons]);
 
 	// Reset form when modal opens/closes
 	useEffect(() => {
@@ -58,8 +68,25 @@ const AddAddonDialog: React.FC<Props> = ({ isOpen, onOpenChange, subscriptionId,
 			setLineItemCommitments({});
 			setSelectedCommitmentPrice(null);
 			setIsCommitmentDialogOpen(false);
+			setAdvancedOpen(false);
+			setStartDate(undefined);
+			setCadence('');
+			setProrationBehavior('');
 		}
 	}, [isOpen]);
+
+	const currentPeriodEndDate = useMemo(() => {
+		const raw = (subscriptionDetails as SubscriptionResponse | undefined)?.current_period_end;
+		if (!raw) return undefined;
+		const parsed = new Date(raw);
+		return isNaN(parsed.getTime()) ? undefined : parsed;
+	}, [subscriptionDetails]);
+
+	const applyAdvancedDefaults = useCallback(() => {
+		setCadence((prev) => (prev ? prev : ADDON_CADENCE.RECURRING));
+		setProrationBehavior((prev) => (prev ? prev : ADDON_PRORATION_BEHAVIOR.NONE));
+		setStartDate((prev) => (prev ? prev : currentPeriodEndDate));
+	}, [currentPeriodEndDate]);
 
 	const validateForm = useCallback((): { isValid: boolean; errors: FormErrors } => {
 		const newErrors: FormErrors = {};
@@ -87,8 +114,10 @@ const AddAddonDialog: React.FC<Props> = ({ isOpen, onOpenChange, subscriptionId,
 			setErrors({});
 			onOpenChange(false);
 		},
-		onError: (error: any) => {
-			toast.error(error?.error?.message || 'Failed to add addon');
+		onError: (error: unknown) => {
+			const message =
+				typeof error === 'object' && error && 'error' in error ? (error as { error?: { message?: string } }).error?.message : undefined;
+			toast.error(message || 'Failed to add addon');
 		},
 	});
 
@@ -106,10 +135,13 @@ const AddAddonDialog: React.FC<Props> = ({ isOpen, onOpenChange, subscriptionId,
 			subscription_id: subscriptionId,
 			addon_id: formData.addon_id!,
 			line_item_commitments: hasCommitments ? lineItemCommitments : undefined,
+			...(startDate ? { start_date: startDate.toISOString() } : {}),
+			...(cadence ? { cadence } : {}),
+			...(prorationBehavior ? { proration_behavior: prorationBehavior } : {}),
 		};
 
 		addAddon(addonData);
-	}, [formData, validateForm, subscriptionId, addAddon, lineItemCommitments]);
+	}, [formData, validateForm, subscriptionId, addAddon, lineItemCommitments, startDate, cadence, prorationBehavior]);
 
 	const handleCancel = useCallback(() => {
 		setFormData({});
@@ -123,6 +155,10 @@ const AddAddonDialog: React.FC<Props> = ({ isOpen, onOpenChange, subscriptionId,
 			setSelectedAddonDetails(addonDetails);
 			// Reset commitments when switching addons to avoid leaking configs across addons
 			setLineItemCommitments({});
+			// Reset advanced config when switching addons
+			setStartDate(undefined);
+			setCadence('');
+			setProrationBehavior('');
 			setFormData((prev) => ({ ...prev, addon_id: addonId }));
 			// Clear error for this field when user selects
 			if (errors.addon_id) {
@@ -206,26 +242,16 @@ const AddAddonDialog: React.FC<Props> = ({ isOpen, onOpenChange, subscriptionId,
 		[lineItemCommitments, handleConfigureCommitment],
 	);
 
-	// Filter addon options based on existing addons and addon type
 	const filteredAddonOptions = useMemo(() => {
-		// Filter out addons that are already added to the subscription
-		const filteredAddons =
-			addonsResponse?.items?.filter((addon) => {
-				if (addon.type === ADDON_TYPE.ONETIME) {
-					return !existingAddonIds.includes(addon.id);
-				}
-				return true;
-			}) || [];
-
-		return filteredAddons.map((addon: AddonResponse) => ({
+		return (addonsResponse?.items || []).map((addon: AddonResponse) => ({
 			label: addon.name,
 			value: addon.id,
-			description: `${toSentenceCase(addon.type)} - ${addon.description || 'No description'}`,
+			description: addon.description || 'No description',
 		}));
-	}, [addonsResponse, existingAddonIds]);
+	}, [addonsResponse]);
 
 	return (
-		<Dialog isOpen={isOpen} showCloseButton={false} onOpenChange={onOpenChange} title='Add Addon' className='sm:max-w-[600px]'>
+		<Dialog isOpen={isOpen} showCloseButton={false} onOpenChange={onOpenChange} title='Add' className='sm:max-w-[600px]'>
 			<div className='grid gap-4 mt-3'>
 				<div className='space-y-2'>
 					<Select
@@ -240,14 +266,10 @@ const AddAddonDialog: React.FC<Props> = ({ isOpen, onOpenChange, subscriptionId,
 
 				{/* Addon Charges & Commitments */}
 				{formData.addon_id && (
-					<div className='space-y-2'>
+					<div className='space-y-3'>
 						<div className='flex items-center justify-between'>
 							<div>
-								<p className='text-sm font-medium text-gray-700'>Addon Charges</p>
-								<p className='text-xs text-gray-500'>
-									Filtered by {billingPeriod ? toSentenceCase(billingPeriod.replace('_', ' ')) : 'billing period'} and{' '}
-									{currency ? currency.toUpperCase() : 'currency'}
-								</p>
+								<p className='text-sm font-medium text-gray-700'>Charges</p>
 							</div>
 						</div>
 						{selectedAddonPrices.length > 0 ? (
@@ -259,7 +281,77 @@ const AddAddonDialog: React.FC<Props> = ({ isOpen, onOpenChange, subscriptionId,
 								<p className='text-sm text-gray-600'>No charges for this billing period/currency.</p>
 							</div>
 						)}
-						<p className='text-xs text-gray-500'>Commitments can be configured only for usage-based charges.</p>
+
+						{/* Advanced options (optional) */}
+						<Collapsible
+							open={advancedOpen}
+							onOpenChange={(open) => {
+								setAdvancedOpen(open);
+								if (open) {
+									applyAdvancedDefaults();
+								}
+							}}>
+							<div className='rounded-xl border border-gray-200 bg-white'>
+								<CollapsibleTrigger asChild>
+									<button
+										type='button'
+										className='w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-800 hover:bg-gray-50 rounded-xl'>
+										<span>Advanced options</span>
+										<ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${advancedOpen ? 'rotate-180' : 'rotate-0'}`} />
+									</button>
+								</CollapsibleTrigger>
+								<CollapsibleContent>
+									<div className='px-4 pb-4 pt-1'>
+										<div className='flex flex-col gap-3'>
+											<DatePicker
+												label='Start date (optional)'
+												placeholder='Start date'
+												date={startDate}
+												setDate={setStartDate}
+												className='w-full'
+												popoverTriggerClassName='w-full'
+											/>
+											<Select
+												label='Cadence (optional)'
+												placeholder='Default'
+												options={[
+													{ label: 'Recurring', value: ADDON_CADENCE.RECURRING, description: 'Renews each billing period.' },
+													{ label: 'One-time', value: ADDON_CADENCE.ONETIME, description: 'Applied once.' },
+												]}
+												value={cadence}
+												onChange={(v) => setCadence(v as ADDON_CADENCE)}
+											/>
+											<Select
+												label='Proration (optional)'
+												placeholder='Default'
+												options={[
+													{
+														label: 'Prorate',
+														value: ADDON_PRORATION_BEHAVIOR.CREATE_PRORATIONS,
+														description: 'Creates proration credits/charges.',
+													},
+													{ label: 'No proration', value: ADDON_PRORATION_BEHAVIOR.NONE, description: 'No proration adjustments.' },
+												]}
+												value={prorationBehavior}
+												onChange={(v) => setProrationBehavior(v as ADDON_PRORATION_BEHAVIOR)}
+											/>
+										</div>
+										<div className='pt-3'>
+											<button
+												type='button'
+												className='text-xs text-gray-500 hover:text-gray-700'
+												onClick={() => {
+													setStartDate(undefined);
+													setCadence(ADDON_CADENCE.RECURRING);
+													setProrationBehavior(ADDON_PRORATION_BEHAVIOR.NONE);
+												}}>
+												Reset advanced options
+											</button>
+										</div>
+									</div>
+								</CollapsibleContent>
+							</div>
+						</Collapsible>
 					</div>
 				)}
 			</div>
@@ -283,7 +375,7 @@ const AddAddonDialog: React.FC<Props> = ({ isOpen, onOpenChange, subscriptionId,
 					Cancel
 				</Button>
 				<Button onClick={handleSave} disabled={isAddingAddon}>
-					{isAddingAddon ? 'Adding...' : 'Add Addon'}
+					{isAddingAddon ? 'Adding...' : 'Add'}
 				</Button>
 			</div>
 		</Dialog>

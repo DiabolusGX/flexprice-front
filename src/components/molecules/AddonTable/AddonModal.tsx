@@ -5,7 +5,6 @@ import { Sheet } from '@/components/atoms';
 import { useQuery } from '@tanstack/react-query';
 import AddonApi from '@/api/AddonApi';
 import { Select } from '@/components/atoms';
-import { toSentenceCase } from '@/utils/common/helper_functions';
 
 interface Props {
 	data?: AddAddonToSubscriptionRequest;
@@ -48,14 +47,6 @@ const AddonModal: React.FC<Props> = ({ data, isOpen, onOpenChange, onSave, onCan
 			newErrors.addon_id = 'Addon is required';
 		}
 
-		if (formData.start_date && formData.end_date) {
-			const startDate = new Date(formData.start_date);
-			const endDate = new Date(formData.end_date);
-			if (startDate >= endDate) {
-				newErrors.end_date = 'End date must be after start date';
-			}
-		}
-
 		setErrors(newErrors);
 		return Object.keys(newErrors).length === 0;
 	};
@@ -68,7 +59,6 @@ const AddonModal: React.FC<Props> = ({ data, isOpen, onOpenChange, onSave, onCan
 		const addonData: AddAddonToSubscriptionRequest = {
 			addon_id: formData.addon_id!,
 			start_date: formData.start_date,
-			end_date: formData.end_date,
 			metadata: formData.metadata || {},
 		};
 
@@ -84,7 +74,7 @@ const AddonModal: React.FC<Props> = ({ data, isOpen, onOpenChange, onSave, onCan
 	const addonOptions = addons.map((addon) => ({
 		label: addon.name,
 		value: addon.id,
-		description: `${toSentenceCase(addon.type)} - ${addon.description || 'No description'}`,
+		description: addon.description || 'No description',
 	}));
 
 	return (
@@ -108,13 +98,6 @@ const AddonModal: React.FC<Props> = ({ data, isOpen, onOpenChange, onSave, onCan
 					placeholder='Select start date'
 					date={formData.start_date ? new Date(formData.start_date) : undefined}
 					setDate={(date) => setFormData({ ...formData, start_date: date?.toISOString() })}
-				/>
-
-				<DatePicker
-					label='End Date'
-					placeholder='Select end date'
-					date={formData.end_date ? new Date(formData.end_date) : undefined}
-					setDate={(date) => setFormData({ ...formData, end_date: date?.toISOString() })}
 				/>
 
 				<div className='flex justify-end space-x-2 pt-4'>

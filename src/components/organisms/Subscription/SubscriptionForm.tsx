@@ -242,7 +242,6 @@ const SubscriptionForm = ({
 		return {
 			addon_id: '',
 			start_date: undefined,
-			end_date: undefined,
 			metadata: {},
 		};
 	};

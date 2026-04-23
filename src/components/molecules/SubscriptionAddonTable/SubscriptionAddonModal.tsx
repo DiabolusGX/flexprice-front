@@ -6,7 +6,6 @@ import { useQuery } from '@tanstack/react-query';
 import AddonApi from '@/api/AddonApi';
 import { Select } from '@/components/atoms';
 import { toSentenceCase } from '@/utils/common/helper_functions';
-import { ADDON_TYPE } from '@/models/Addon';
 import { ColumnData, FlexpriceTable } from '@/components/molecules';
 import { Price, PRICE_TYPE } from '@/models/Price';
 import { BILLING_PERIOD } from '@/constants/constants';
@@ -16,7 +15,6 @@ import { formatCommitmentSummary } from '@/utils/common/commitment_helpers';
 import { isOneTimePlanPrice } from '@/utils/subscription/planPricesForSubscriptionUi';
 interface Props {
 	data?: AddAddonToSubscriptionRequest;
-	currentAddons: AddAddonToSubscriptionRequest[];
 	isOpen: boolean;
 	onOpenChange: (open: boolean) => void;
 	onSave: (addon: AddAddonToSubscriptionRequest) => void;
@@ -28,7 +26,6 @@ interface Props {
 
 interface FormErrors {
 	addon_id?: string;
-	end_date?: string;
 }
 
 type AddonChargeRow = {
@@ -37,7 +34,6 @@ type AddonChargeRow = {
 
 const SubscriptionAddonModal: React.FC<Props> = ({
 	data,
-	currentAddons,
 	isOpen,
 	onOpenChange,
 	onSave,
@@ -93,14 +89,6 @@ const SubscriptionAddonModal: React.FC<Props> = ({
 			newErrors.addon_id = 'Addon is required';
 		}
 
-		if (formData.start_date && formData.end_date) {
-			const startDate = new Date(formData.start_date);
-			const endDate = new Date(formData.end_date);
-			if (startDate >= endDate) {
-				newErrors.end_date = 'End date must be after start date';
-			}
-		}
-
 		return {
 			isValid: Object.keys(newErrors).length === 0,
 			errors: newErrors,
@@ -122,7 +110,6 @@ const SubscriptionAddonModal: React.FC<Props> = ({
 		const addonData: AddAddonToSubscriptionRequest = {
 			addon_id: formData.addon_id!,
 			start_date: formData.start_date,
-			end_date: formData.end_date,
 			metadata: formData.metadata || {},
 			line_item_commitments: hasCommitments ? commitments : undefined,
 		};
@@ -248,30 +235,13 @@ const SubscriptionAddonModal: React.FC<Props> = ({
 	// 	[errors.end_date],
 	// );
 
-	// Filter addon options based on current addons and addon type
 	const filteredAddonOptions = useMemo(() => {
-		return addons
-			.filter((addon) => {
-				// If editing, always include the current addon
-				if (data && data.addon_id === addon.id) {
-					return true;
-				}
-
-				// For one-time addons, check if they're already linked
-				if (addon.type === ADDON_TYPE.ONETIME) {
-					const isAlreadyLinked = currentAddons.some((currentAddon) => currentAddon.addon_id === addon.id);
-					return !isAlreadyLinked;
-				}
-
-				// For multiple addons, always include them (can be added multiple times)
-				return true;
-			})
-			.map((addon) => ({
-				label: addon.name,
-				value: addon.id,
-				description: `${toSentenceCase(addon.type)} - ${addon.description || 'No description'}`,
-			}));
-	}, [addons, currentAddons, data]);
+		return addons.map((addon) => ({
+			label: addon.name,
+			value: addon.id,
+			description: addon.description || 'No description',
+		}));
+	}, [addons]);
 
 	return (
 		<Dialog

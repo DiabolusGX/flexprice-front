@@ -1,5 +1,5 @@
-import { Button, Input, Sheet, Spacer, Textarea, Select } from '@/components/atoms';
-import Addon, { ADDON_TYPE } from '@/models/Addon';
+import { Button, Input, Sheet, Spacer, Textarea } from '@/components/atoms';
+import Addon from '@/models/Addon';
 import { FC, useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import AddonApi from '@/api/AddonApi';
@@ -25,7 +25,6 @@ const AddonDrawer: FC<Props> = ({ data, open, onOpenChange, trigger, refetchQuer
 			name: '',
 			description: '',
 			lookup_key: '',
-			type: ADDON_TYPE.MULTIPLE_INSTANCE,
 		},
 	);
 	const [errors, setErrors] = useState<Partial<Record<keyof Addon, string>>>({});
@@ -57,7 +56,6 @@ const AddonDrawer: FC<Props> = ({ data, open, onOpenChange, trigger, refetchQuer
 				name: '',
 				description: '',
 				lookup_key: '',
-				type: ADDON_TYPE.MULTIPLE_INSTANCE,
 			});
 		}
 	}, [data]);
@@ -83,11 +81,6 @@ const AddonDrawer: FC<Props> = ({ data, open, onOpenChange, trigger, refetchQuer
 		}
 		updateAddon(formData);
 	};
-
-	const addonTypeOptions = [
-		{ value: ADDON_TYPE.ONETIME, label: 'One Time' },
-		{ value: ADDON_TYPE.MULTIPLE_INSTANCE, label: 'Multiple Instance' },
-	];
 
 	return (
 		<Sheet
@@ -121,16 +114,6 @@ const AddonDrawer: FC<Props> = ({ data, open, onOpenChange, trigger, refetchQuer
 				value={formData.lookup_key}
 				placeholder='Enter a slug for the addon'
 				description={'A system identifier used for API calls and integrations.'}
-			/>
-
-			<Spacer height={'20px'} />
-			<Select
-				label='Addon Type'
-				value={formData.type ?? ADDON_TYPE.MULTIPLE_INSTANCE}
-				onChange={(value) => setFormData({ ...formData, type: value as ADDON_TYPE })}
-				options={addonTypeOptions}
-				placeholder='Select addon type'
-				description='Choose whether this addon can be used once or multiple times.'
 			/>
 
 			<Spacer height={'20px'} />

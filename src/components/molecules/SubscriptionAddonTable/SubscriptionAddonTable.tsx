@@ -1,12 +1,11 @@
 import { AddAddonToSubscriptionRequest } from '@/types/dto/Addon';
 import React, { useCallback, useMemo, useState, memo } from 'react';
-import { AddButton, FormHeader, ActionButton, Chip } from '@/components/atoms';
+import { AddButton, FormHeader, ActionButton } from '@/components/atoms';
 import FlexpriceTable, { ColumnData } from '../Table';
 import SubscriptionAddonModal from './SubscriptionAddonModal';
 import { useQuery } from '@tanstack/react-query';
 import AddonApi from '@/api/AddonApi';
-import { ADDON_TYPE } from '@/models/Addon';
-import { getTotalPayableTextWithCoupons, toSentenceCase } from '@/utils/common/helper_functions';
+import { getTotalPayableTextWithCoupons } from '@/utils/common/helper_functions';
 import { Price, PRICE_TYPE } from '@/models/Price';
 import { BILLING_PERIOD } from '@/constants/constants';
 import { getCurrentPriceAmount, ExtendedPriceOverride } from '@/utils/common/price_override_helpers';
@@ -22,18 +21,6 @@ interface Props {
 	billingPeriod?: BILLING_PERIOD;
 	currency?: string;
 }
-const getAddonTypeChip = (type: string) => {
-	switch (type.toLowerCase()) {
-		case ADDON_TYPE.ONETIME:
-			return <Chip textColor='#4B5563' bgColor='#F3F4F6' label={toSentenceCase(type)} className='text-xs' />;
-		case ADDON_TYPE.MULTIPLE:
-		case ADDON_TYPE.MULTIPLE_INSTANCE:
-			return <Chip textColor='#1E40AF' bgColor='#DBEAFE' label={toSentenceCase(type)} className='text-xs' />;
-		default:
-			return <Chip textColor='#6B7280' bgColor='#F9FAFB' label={toSentenceCase(type)} className='text-xs' />;
-	}
-};
-
 const formatAddonCharges = (
 	prices: Price[] = [],
 	priceOverrides: Record<string, ExtendedPriceOverride> = {},
@@ -152,13 +139,6 @@ const SubscriptionAddonTable: React.FC<Props> = ({
 				},
 			},
 			{
-				title: 'Type',
-				render: (row) => {
-					const addonDetails = getAddonDetails(row.addon_id);
-					return addonDetails ? getAddonTypeChip(addonDetails.type) : '--';
-				},
-			},
-			{
 				title: 'Charges',
 				render: (row) => {
 					const addonDetails = getAddonDetails(row.addon_id);
@@ -206,7 +186,6 @@ const SubscriptionAddonTable: React.FC<Props> = ({
 			<SubscriptionAddonModal
 				getEmptyAddon={getEmptyAddon}
 				data={selectedAddon || undefined}
-				currentAddons={data}
 				isOpen={isOpen}
 				onOpenChange={setIsOpen}
 				onSave={handleSave}

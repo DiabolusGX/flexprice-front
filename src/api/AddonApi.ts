@@ -7,7 +7,6 @@ import {
 	GetAddonsPayload,
 	GetAddonsResponse,
 	GetAddonByFilterPayload,
-	AddAddonToSubscriptionRequest,
 	AddonResponse,
 } from '@/types/dto';
 import { ListEntitlementsResponse } from '@/types/dto/Entitlement';
@@ -45,14 +44,6 @@ class AddonApi {
 
 	public static async ListByFilter(payload: GetAddonByFilterPayload) {
 		return await AxiosClient.post<GetAddonsResponse, GetAddonByFilterPayload>(`${this.baseUrl}/search`, payload);
-	}
-
-	public static async AddAddonToSubscription(subscriptionId: string, data: AddAddonToSubscriptionRequest) {
-		return await AxiosClient.post(`/subscriptions/${subscriptionId}/addons`, data);
-	}
-
-	public static async RemoveAddonFromSubscription(subscriptionId: string, addonId: string) {
-		return await AxiosClient.delete<void>(`/subscriptions/${subscriptionId}/addons/${addonId}`);
 	}
 
 	public static async GetEntitlements(addonId: string) {

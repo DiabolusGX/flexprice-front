@@ -4,7 +4,6 @@ export { ENTITY_STATUS } from './base';
 
 // Addon
 export type { default as Addon } from './Addon';
-export { ADDON_TYPE } from './Addon';
 
 // CostSheet
 export type { default as CostSheet } from './CostSheet';

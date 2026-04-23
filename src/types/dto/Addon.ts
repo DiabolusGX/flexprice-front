@@ -1,9 +1,19 @@
-import { Pagination, Addon, ADDON_TYPE, Metadata, Price, Entitlement } from '@/models';
+import { Pagination, Addon, Metadata, Price, Entitlement } from '@/models';
 import { TypedBackendFilter, TypedBackendSort } from '../formatters/QueryBuilder';
 import { QueryFilter, TimeRangeFilter } from './base';
 import { FilterCondition } from '../common/QueryBuilder';
 import { SortOption } from '../common/QueryBuilder';
 import { LineItemCommitmentsMap } from './LineItemCommitmentConfig';
+
+export enum ADDON_CADENCE {
+	ONETIME = 'onetime',
+	RECURRING = 'recurring',
+}
+
+export enum ADDON_PRORATION_BEHAVIOR {
+	CREATE_PRORATIONS = 'create_prorations',
+	NONE = 'none',
+}
 
 export interface ExtendedAddon extends Addon {
 	prices: Price[];
@@ -14,7 +24,6 @@ export interface CreateAddonRequest {
 	name: string;
 	lookup_key: string;
 	description?: string;
-	type: ADDON_TYPE;
 	metadata?: Metadata;
 }
 
@@ -32,7 +41,8 @@ export interface UpdateAddonRequest {
 export interface AddAddonToSubscriptionRequest {
 	addon_id: string;
 	start_date?: string;
-	end_date?: string;
+	cadence?: ADDON_CADENCE;
+	proration_behavior?: ADDON_PRORATION_BEHAVIOR;
 	metadata?: Metadata;
 	line_item_commitments?: LineItemCommitmentsMap;
 }
@@ -48,7 +58,6 @@ export interface GetAddonsPayload {
 	sort?: string;
 	start_time?: string;
 	status?: string;
-	addon_type?: ADDON_TYPE;
 	lookup_keys?: string[];
 }
 
@@ -66,6 +75,5 @@ export interface AddonFilter extends Omit<QueryFilter, 'sort'>, TimeRangeFilter 
 	filters?: FilterCondition[];
 	sort?: SortOption[];
 	addon_ids?: string[];
-	addon_type?: ADDON_TYPE;
 	lookup_keys?: string[];
 }

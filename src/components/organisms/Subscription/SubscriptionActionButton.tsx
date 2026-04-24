@@ -6,7 +6,7 @@ import {
 	SUBSCRIPTION_STATUS,
 } from '@/models/Subscription';
 import { useMutation } from '@tanstack/react-query';
-import { CirclePause, CirclePlay, X, Plus, Pencil, Play } from 'lucide-react';
+import { X, Plus, Pencil, Play } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
 import SubscriptionApi from '@/api/SubscriptionApi';
 import { DatePicker, Label, Modal, Input, Button, FormHeader, Spacer, Select, Toggle } from '@/components/atoms';
@@ -14,7 +14,6 @@ import { toast } from 'react-hot-toast';
 import DropdownMenu, { DropdownMenuOption } from '@/components/molecules/DropdownMenu/DropdownMenu';
 import { refetchQueries } from '@/core/services/tanstack/ReactQueryProvider';
 import { isInheritedSubscription } from '@/utils/subscription/isInheritedSubscription';
-import { addDays, format } from 'date-fns';
 import { useNavigate } from 'react-router';
 import { RouteNames } from '@/core/routes/Routes';
 import { ServerError } from '@/core/axios/types';
@@ -26,14 +25,14 @@ interface Props {
 const SubscriptionActionButton: React.FC<Props> = ({ subscription }) => {
 	const navigate = useNavigate();
 	const [state, setState] = useState({
-		isPauseModalOpen: false,
-		isResumeModalOpen: false,
+		// isPauseModalOpen: false,
+		// isResumeModalOpen: false,
 		isCancelModalOpen: false,
 		isAddPhaseModalOpen: false,
 		isActivateModalOpen: false,
-		pauseStartDate: new Date(),
-		pauseDays: '',
-		pauseReason: '',
+		// pauseStartDate: new Date(),
+		// pauseDays: '',
+		// pauseReason: '',
 		activateStartDate: new Date(),
 		cancelCancellationType: SUBSCRIPTION_CANCELLATION_TYPE.IMMEDIATE,
 		cancelProrationBehavior: SUBSCRIPTION_PRORATION_BEHAVIOR.NONE,
@@ -58,49 +57,47 @@ const SubscriptionActionButton: React.FC<Props> = ({ subscription }) => {
 		state.cancelGenerateInvoice
 			? SUBSCRIPTION_CANCEL_IMMEDIATELY_INVOICE_POLICY.GENERATE_INVOICE
 			: SUBSCRIPTION_CANCEL_IMMEDIATELY_INVOICE_POLICY.SKIP;
-
-	const pauseEndDate = useMemo(() => {
-		if (!state.pauseDays) return null;
-		return addDays(state.pauseStartDate, parseInt(state.pauseDays));
-	}, [state.pauseStartDate, state.pauseDays]);
-
+	// const pauseEndDate = useMemo(() => {
+	// 	if (!state.pauseDays) return null;
+	// 	return addDays(state.pauseStartDate, parseInt(state.pauseDays));
+	// }, [state.pauseStartDate, state.pauseDays]);
 	const minCancelScheduledAt = useMemo(() => new Date(), []);
 
-	const { mutate: pauseSubscription, isPending: isPauseLoading } = useMutation({
-		mutationFn: (id: string) =>
-			SubscriptionApi.pauseSubscription(id, {
-				pause_start: state.pauseStartDate.toISOString(),
-				pause_days: parseInt(state.pauseDays),
-				pause_mode: 'immediate',
-			}),
-		onSuccess: async () => {
-			setState((prev) => ({ ...prev, isPauseModalOpen: false }));
-			toast.success('Subscription paused successfully');
-			await refetchQueries(['subscriptionDetails']);
-			await refetchQueries(['subscriptions']);
-		},
-		onError: (error: ServerError) => {
-			setState((prev) => ({ ...prev, isPauseModalOpen: false }));
-			toast.error(error.error.message || 'Failed to pause subscription');
-		},
-	});
+	// const { mutate: pauseSubscription, isPending: isPauseLoading } = useMutation({
+	// 	mutationFn: (id: string) =>
+	// 		SubscriptionApi.pauseSubscription(id, {
+	// 			pause_start: state.pauseStartDate.toISOString(),
+	// 			pause_days: parseInt(state.pauseDays),
+	// 			pause_mode: 'immediate',
+	// 		}),
+	// 	onSuccess: async () => {
+	// 		setState((prev) => ({ ...prev, isPauseModalOpen: false }));
+	// 		toast.success('Subscription paused successfully');
+	// 		await refetchQueries(['subscriptionDetails']);
+	// 		await refetchQueries(['subscriptions']);
+	// 	},
+	// 	onError: (error: ServerError) => {
+	// 		setState((prev) => ({ ...prev, isPauseModalOpen: false }));
+	// 		toast.error(error.error.message || 'Failed to pause subscription');
+	// 	},
+	// });
 
-	const { mutate: resumeSubscription, isPending: isResumeLoading } = useMutation({
-		mutationFn: (id: string) =>
-			SubscriptionApi.resumeSubscription(id, {
-				resume_mode: 'immediate',
-			}),
-		onSuccess: async () => {
-			setState((prev) => ({ ...prev, isResumeModalOpen: false }));
-			toast.success('Subscription resumed successfully');
-			await refetchQueries(['subscriptionDetails']);
-			await refetchQueries(['subscriptions']);
-		},
-		onError: (err: ServerError) => {
-			setState((prev) => ({ ...prev, isResumeModalOpen: false }));
-			toast.error(err.error.message || 'Failed to resume subscription');
-		},
-	});
+	// const { mutate: resumeSubscription, isPending: isResumeLoading } = useMutation({
+	// 	mutationFn: (id: string) =>
+	// 		SubscriptionApi.resumeSubscription(id, {
+	// 			resume_mode: 'immediate',
+	// 		}),
+	// 	onSuccess: async () => {
+	// 		setState((prev) => ({ ...prev, isResumeModalOpen: false }));
+	// 		toast.success('Subscription resumed successfully');
+	// 		await refetchQueries(['subscriptionDetails']);
+	// 		await refetchQueries(['subscriptions']);
+	// 	},
+	// 	onError: (err: ServerError) => {
+	// 		setState((prev) => ({ ...prev, isResumeModalOpen: false }));
+	// 		toast.error(err.error.message || 'Failed to resume subscription');
+	// 	},
+	// });
 
 	const cancelScheduledInvalid =
 		state.cancelCancellationType === SUBSCRIPTION_CANCELLATION_TYPE.SCHEDULED_DATE && state.cancelScheduledAt === undefined;
@@ -167,14 +164,14 @@ const SubscriptionActionButton: React.FC<Props> = ({ subscription }) => {
 			onSelect: () => navigate(`${RouteNames.subscriptions}/${subscription.id}/edit`),
 			disabled: isCancelled || readOnly,
 		},
-		...(!isPaused && !isCancelled && !isDraft
+		...(!isCancelled && !isDraft
 			? [
-					{
-						label: 'Pause Subscription',
-						icon: <CirclePause className='h-4 w-4' />,
-						onSelect: () => setState((prev) => ({ ...prev, isPauseModalOpen: true })),
-						disabled: isPaused || isCancelled || readOnly,
-					},
+					// {
+					// 	label: 'Pause Subscription',
+					// 	icon: <CirclePause className='h-4 w-4' />,
+					// 	onSelect: () => setState((prev) => ({ ...prev, isPauseModalOpen: true })),
+					// 	disabled: isPaused || isCancelled || readOnly,
+					// },
 					{
 						label: 'Add Subscription Phase',
 						icon: <Plus className='h-4 w-4' />,
@@ -183,16 +180,16 @@ const SubscriptionActionButton: React.FC<Props> = ({ subscription }) => {
 					},
 				]
 			: []),
-		...(isPaused && !isCancelled
-			? [
-					{
-						label: 'Resume Subscription',
-						icon: <CirclePlay className='h-4 w-4' />,
-						onSelect: () => setState((prev) => ({ ...prev, isResumeModalOpen: true })),
-						disabled: isCancelled || readOnly,
-					},
-				]
-			: []),
+		// ...(isPaused && !isCancelled
+		// 	? [
+		// 			{
+		// 				label: 'Resume Subscription',
+		// 				icon: <CirclePlay className='h-4 w-4' />,
+		// 				onSelect: () => setState((prev) => ({ ...prev, isResumeModalOpen: true })),
+		// 				disabled: isCancelled || readOnly,
+		// 			},
+		// 		]
+		// 	: []),
 		{
 			label: 'Cancel Subscription',
 			icon: <X className='h-4 w-4' />,
@@ -205,90 +202,6 @@ const SubscriptionActionButton: React.FC<Props> = ({ subscription }) => {
 	return (
 		<>
 			<DropdownMenu options={menuOptions} />
-
-			{/* Pause Modal */}
-			<Modal
-				isOpen={state.isPauseModalOpen}
-				onOpenChange={(open) => setState((prev) => ({ ...prev, isPauseModalOpen: open }))}
-				className='bg-white rounded-lg p-6 w-[560px] max-w-[90vw]'>
-				<div className=''>
-					<FormHeader
-						title='Pause Subscription'
-						variant='sub-header'
-						subtitle='Pausing the subscription will stop the subscription from charging the customer for the selected period.'
-					/>
-					<Spacer className='!my-6' />
-					<div className='flex gap-4 w-full items-end'>
-						<DatePicker
-							label='Pause Start Date'
-							date={state.pauseStartDate}
-							setDate={(date) => setState((prev) => ({ ...prev, pauseStartDate: date || new Date() }))}
-							minDate={new Date()}
-							className='!w-full '
-						/>
-
-						<Input
-							label='Number of days'
-							value={state.pauseDays}
-							onChange={(value) => setState((prev) => ({ ...prev, pauseDays: value }))}
-							suffix='days'
-							placeholder='Enter number of days'
-							variant='integer'
-							className='!h-10'
-							labelClassName='!text-muted-foreground font-normal mb-0'
-						/>
-					</div>
-
-					{state.pauseDays && pauseEndDate && (
-						<p className='text-sm text-muted-foreground  mt-4'>
-							The subscription of <span className='text-black'>{subscription.customer?.name}</span> to{' '}
-							<span className='text-black'>{subscription.plan?.name}</span> will be paused from{' '}
-							<span className='text-black'>{format(state.pauseStartDate, 'do MMM')}</span> to{' '}
-							<span className='text-black'>{format(pauseEndDate, 'do MMM')}</span>. The subscription will resume from{' '}
-							<span className='text-black'>{format(addDays(pauseEndDate, 1), 'do MMM')}</span> and the customer will not be charged until{' '}
-							<span className='text-black'>{format(pauseEndDate, 'do MMM')}</span>.
-						</p>
-					)}
-
-					<div className='flex justify-end gap-3 pt-4'>
-						<Button
-							variant='outline'
-							onClick={() => setState((prev) => ({ ...prev, isPauseModalOpen: false }))}
-							disabled={isPauseLoading}
-							className='px-6'>
-							Cancel
-						</Button>
-						<Button onClick={() => pauseSubscription(subscription.id)} disabled={isPauseLoading || !state.pauseDays} className='px-6'>
-							{isPauseLoading ? 'Pausing...' : 'Schedule Pause'}
-						</Button>
-					</div>
-				</div>
-			</Modal>
-
-			{/* Resume Modal */}
-			<Modal
-				isOpen={state.isResumeModalOpen}
-				onOpenChange={(open) => setState((prev) => ({ ...prev, isResumeModalOpen: open }))}
-				className='bg-white rounded-lg p-6 w-[800px] max-w-[90vw]'>
-				<div className='space-y-4'>
-					<FormHeader title='Resume Subscription' variant='sub-header' />
-					<Spacer className='!my-6' />
-					<p className='text-sm text-muted-foreground  mt-4'>
-						{`Resuming the subscription will start a new billing cycle from ${format(new Date(), 'do MMM')} and generate a new invoice. Customers using advance charging will be charged immediately.`}
-					</p>
-					<div className='flex justify-end gap-3 pt-4'>
-						<Button
-							variant='outline'
-							onClick={() => setState((prev) => ({ ...prev, isResumeModalOpen: false }))}
-							disabled={isResumeLoading}>
-							Cancel
-						</Button>
-						<Button onClick={() => resumeSubscription(subscription.id)} disabled={isResumeLoading}>
-							{isResumeLoading ? 'Resuming...' : 'Yes, Resume'}
-						</Button>
-					</div>
-				</div>
-			</Modal>
 
 			{/* Cancel Modal */}
 			<Modal

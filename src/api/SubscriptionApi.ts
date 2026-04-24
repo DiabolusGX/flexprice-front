@@ -5,10 +5,11 @@ import {
 	ListSubscriptionsResponse,
 	GetSubscriptionDetailsPayload,
 	GetSubscriptionPreviewResponse,
-	PauseSubscriptionPayload,
-	ResumeSubscriptionPayload,
-	SubscriptionPauseResponse,
-	SubscriptionResumeResponse,
+	// Pause/Resume subscription support (backend routes removed)
+	// PauseSubscriptionPayload,
+	// ResumeSubscriptionPayload,
+	// SubscriptionPauseResponse,
+	// SubscriptionResumeResponse,
 	CancelSubscriptionPayload,
 	CreateSubscriptionRequest,
 	UpdateSubscriptionRequest,
@@ -25,7 +26,8 @@ import {
 	UpdateSubscriptionLineItemRequest,
 	DeleteSubscriptionLineItemRequest,
 	SubscriptionLineItemResponse,
-	ListSubscriptionPausesResponse,
+	// Pause history support (backend routes removed)
+	// ListSubscriptionPausesResponse,
 	PreviewSubscriptionChangeRequest,
 	PreviewSubscriptionChangeResponse,
 	ExecuteSubscriptionChangeRequest,
@@ -54,7 +56,7 @@ class SubscriptionApi {
 	 * Get a subscription by ID with expand options (v2 - minimal response support)
 	 * @param id - Subscription ID
 	 * @param options - Optional parameters
-	 * @param options.expand - Comma-separated list of fields to expand (e.g., 'plan,schedule,pauses'). Pass empty string for minimal response.
+	 * @param options.expand - Comma-separated list of fields to expand (e.g., 'plan,schedule'). Pass empty string for minimal response.
 	 */
 	public static async getSubscriptionV2(id: string, options?: { expand?: string }): Promise<SubscriptionResponse> {
 		const params = new URLSearchParams();
@@ -108,20 +110,25 @@ class SubscriptionApi {
 	// =============================================================================
 	// SUBSCRIPTION STATUS METHODS
 	// =============================================================================
-
-	/**
-	 * Pause subscription
-	 */
-	public static async pauseSubscription(id: string, payload: PauseSubscriptionPayload): Promise<SubscriptionPauseResponse> {
-		return await AxiosClient.post(`${this.baseUrl}/${id}/pause`, payload);
-	}
-
-	/**
-	 * Resume subscription
-	 */
-	public static async resumeSubscription(id: string, payload: ResumeSubscriptionPayload): Promise<SubscriptionResumeResponse> {
-		return await AxiosClient.post(`${this.baseUrl}/${id}/resume`, payload);
-	}
+	//
+	// Pause/Resume support disabled:
+	// Backend routes removed:
+	// - POST /subscriptions/:id/pause
+	// - POST /subscriptions/:id/resume
+	//
+	// /**
+	//  * Pause subscription
+	//  */
+	// public static async pauseSubscription(id: string, payload: PauseSubscriptionPayload): Promise<SubscriptionPauseResponse> {
+	// 	return await AxiosClient.post(`${this.baseUrl}/${id}/pause`, payload);
+	// }
+	//
+	// /**
+	//  * Resume subscription
+	//  */
+	// public static async resumeSubscription(id: string, payload: ResumeSubscriptionPayload): Promise<SubscriptionResumeResponse> {
+	// 	return await AxiosClient.post(`${this.baseUrl}/${id}/resume`, payload);
+	// }
 
 	/**
 	 * Activate draft subscription
@@ -240,16 +247,18 @@ class SubscriptionApi {
 	}
 
 	// =============================================================================
-	// SUBSCRIPTION PAUSE METHODS
+	// SUBSCRIPTION PAUSE METHODS (disabled)
 	// =============================================================================
-
-	/**
-	 * List all pauses for a subscription
-	 * GET /subscriptions/:id/pauses
-	 */
-	public static async listPauses(subscriptionId: string): Promise<ListSubscriptionPausesResponse> {
-		return await AxiosClient.get<ListSubscriptionPausesResponse>(`${this.baseUrl}/${subscriptionId}/pauses`);
-	}
+	//
+	// Backend route removed:
+	// - GET /subscriptions/:id/pauses
+	//
+	// /**
+	//  * List all pauses for a subscription
+	//  */
+	// public static async listPauses(subscriptionId: string): Promise<ListSubscriptionPausesResponse> {
+	// 	return await AxiosClient.get<ListSubscriptionPausesResponse>(`${this.baseUrl}/${subscriptionId}/pauses`);
+	// }
 
 	// =============================================================================
 	// SUBSCRIPTION CHANGE METHODS

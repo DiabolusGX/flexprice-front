@@ -113,62 +113,70 @@ export interface GetSubscriptionPreviewResponse {
 	total_tax: number;
 }
 
-export interface PauseSubscriptionPayload {
-	dry_run?: boolean;
-	metadata?: Metadata;
-	pause_days?: number;
-	pause_end?: string;
-	pause_mode?: 'immediate';
-	pause_start?: string;
-	reason?: string;
-}
+// =============================================================================
+// SUBSCRIPTION PAUSE SUPPORT (disabled)
+// =============================================================================
+// Backend routes removed:
+// - POST /subscriptions/:id/pause
+// - POST /subscriptions/:id/resume
+// - GET /subscriptions/:id/pauses
 
-export interface ResumeSubscriptionPayload {
-	dry_run?: boolean;
-	metadata?: Metadata;
-	resume_mode?: 'immediate';
-}
+// export interface PauseSubscriptionPayload {
+// 	dry_run?: boolean;
+// 	metadata?: Metadata;
+// 	pause_days?: number;
+// 	pause_end?: string;
+// 	pause_mode?: 'immediate';
+// 	pause_start?: string;
+// 	reason?: string;
+// }
 
-export interface SubscriptionPauseResponse {
-	created_at: string;
-	created_by: string;
-	environment_id: string;
-	id: string;
-	metadata: Metadata;
-	original_period_end: string;
-	original_period_start: string;
-	pause_end: string;
-	pause_mode: string;
-	pause_start: string;
-	pause_status: string;
-	reason: string;
-	resume_mode: string;
-	resumed_at: string;
-	status: 'published';
-	subscription_id: string;
-	tenant_id: string;
-	updated_at: string;
-	updated_by: string;
-}
+// export interface ResumeSubscriptionPayload {
+// 	dry_run?: boolean;
+// 	metadata?: Metadata;
+// 	resume_mode?: 'immediate';
+// }
 
-// Since both responses have the same structure, we can reuse the interface
-export type SubscriptionResumeResponse = SubscriptionPauseResponse;
+// export interface SubscriptionPauseResponse {
+// 	created_at: string;
+// 	created_by: string;
+// 	environment_id: string;
+// 	id: string;
+// 	metadata: Metadata;
+// 	original_period_end: string;
+// 	original_period_start: string;
+// 	pause_end: string;
+// 	pause_mode: string;
+// 	pause_start: string;
+// 	pause_status: string;
+// 	reason: string;
+// 	resume_mode: string;
+// 	resumed_at: string;
+// 	status: 'published';
+// 	subscription_id: string;
+// 	tenant_id: string;
+// 	updated_at: string;
+// 	updated_by: string;
+// }
 
-export interface SubscriptionPause {
-	id: string;
-	subscription_id: string;
-	pause_start: string;
-	pause_end: string;
-	pause_status: string;
-	pause_mode: string;
-	created_at: string;
-	updated_at: string;
-}
+// // Since both responses have the same structure, we can reuse the interface
+// export type SubscriptionResumeResponse = SubscriptionPauseResponse;
 
-export interface ListSubscriptionPausesResponse {
-	pauses: SubscriptionPause[];
-	total: number;
-}
+// export interface SubscriptionPause {
+// 	id: string;
+// 	subscription_id: string;
+// 	pause_start: string;
+// 	pause_end: string;
+// 	pause_status: string;
+// 	pause_mode: string;
+// 	created_at: string;
+// 	updated_at: string;
+// }
+
+// export interface ListSubscriptionPausesResponse {
+// 	pauses: SubscriptionPause[];
+// 	total: number;
+// }
 
 // Subscription Change Types
 export interface PreviewSubscriptionChangeRequest {

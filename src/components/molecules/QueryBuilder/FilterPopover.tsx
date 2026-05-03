@@ -439,8 +439,8 @@ const FilterPopover: React.FC<Props> = ({ fields, value = [], onChange, classNam
 															);
 														})}
 														<div className={cn('grid items-center', GRID_GAP, 'px-2 py-0.5')} style={gridTemplateColumns}>
-															<div style={{ gridColumn: '1 / 3' }} className='min-w-0' aria-hidden />
-															<div style={{ gridColumn: '3 / 5' }} className='min-w-0'>
+															<div style={{ gridColumn: '3 / 4' }} className='min-w-0' aria-hidden />
+															<div className='flex min-w-0 items-center justify-end'>
 																<Button
 																	variant='ghost'
 																	size='sm'

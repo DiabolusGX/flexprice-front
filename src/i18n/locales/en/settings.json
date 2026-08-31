@@ -492,7 +492,8 @@
 			"downloadFailedHint": "We couldn't read the uploaded file. This usually happens if you clicked Import before the upload finished. Please try again."
 		},
 		"importFileLabel": "Import file",
-		"chooseFile": "Choose File to Upload"
+		"chooseFile": "Choose File to Upload",
+		"maxFileSizeHint": "Max 5 MB. Only .csv files are accepted."
 	},
 	"bulkImports": {
 		"writeDeniedTooltip": "You don't have permission to create import tasks. Ask a tenant admin for access.",

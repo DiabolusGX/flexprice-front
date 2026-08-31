@@ -388,7 +388,7 @@ const ImportFileDrawer: FC<Props> = ({ isOpen, onOpenChange, taskId }) => {
 											);
 										}}
 									/>
-									<div className='card !px-4 !py-3 border flex  items-start mb-2 gap-3'>
+									<div className='card !px-4 !py-3 border flex items-start mb-2 gap-3'>
 										<div className='py-1'>
 											<CircleAlert className='size-4' />
 										</div>
@@ -400,15 +400,16 @@ const ImportFileDrawer: FC<Props> = ({ isOpen, onOpenChange, taskId }) => {
 												titleClassName='mb-0'
 												subtitle={t('common:labels.maxFileSizeSubtitle')}
 											/>
-											<Button
-												className='flex gap-2 !p-0 m-0 underline'
-												variant={'link'}
-												onClick={() => {
-													window.open(getSampleFileUrl(entityType?.value || ''), '_blank');
-												}}>
+											{/* Rendered as an anchor because the Button atom's default size adds
+											    a border + fixed height that visually conflicts with a link. */}
+											<a
+												href={getSampleFileUrl(entityType?.value || '')}
+												target='_blank'
+												rel='noreferrer'
+												className='mt-1 inline-flex items-center gap-1 text-sm font-medium text-primary underline underline-offset-4 hover:opacity-80'>
 												{t('common:labels.sampleCsv')}
-												<Download className='size-4 underline' />
-											</Button>
+												<Download className='size-3.5' />
+											</a>
 										</div>
 									</div>
 								</div>

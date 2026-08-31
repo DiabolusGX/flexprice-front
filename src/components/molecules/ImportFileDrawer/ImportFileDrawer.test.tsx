@@ -14,15 +14,16 @@ import TaskApi from '@/api/TaskApi';
 const csvBoxSpy = vi.fn();
 vi.mock('@csvbox/react', () => ({
 	CSVBoxButton: (props: {
-		user: string;
+		user: string | { user_id: string };
 		licenseKey: string;
 		onImport: (ok: boolean, meta: Record<string, unknown>) => void;
 		render: (launch: () => void, isLoading: boolean) => React.ReactNode;
 	}) => {
 		csvBoxSpy(props);
+		const userId = typeof props.user === 'string' ? props.user : props.user?.user_id;
 		return (
 			<div>
-				<div data-testid='csvbox-user'>{props.user}</div>
+				<div data-testid='csvbox-user'>{userId}</div>
 				{props.render(() => {
 					props.onImport(true, {
 						import_id: 987654,

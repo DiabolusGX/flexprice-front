@@ -352,8 +352,29 @@ const ImportFileDrawer: FC<Props> = ({ isOpen, onOpenChange, taskId }) => {
 								<div className='space-y-4'>
 									<CSVBoxButton
 										key={csvBoxKey}
-										user={csvBoxCustomerId}
+										// CSV Box docs recommend the object form so custom attributes (e.g. env) can
+										// travel alongside user_id if we ever need them. String form still works, but
+										// object form is what their examples use and it's cheap to align.
+										user={{ user_id: csvBoxCustomerId }}
+										onReady={() => {
+											// Iframe finished loading; CSV Box is ready to accept a file.
+											 
+											console.debug('[csvbox] onReady', { customerId: csvBoxCustomerId });
+										}}
+										onSubmit={(meta: unknown) => {
+											// User clicked Submit inside the iframe — CSV Box will now push data to
+											// the sheet's configured destination. If we never see onImport after this,
+											// the CSV Box account's destination is what's stuck.
+											 
+											console.debug('[csvbox] onSubmit', meta);
+										}}
+										onClose={() => {
+											 
+											console.debug('[csvbox] onClose');
+										}}
 										onImport={(data: boolean, meta: ImportMeta) => {
+											 
+											console.debug('[csvbox] onImport', { success: data, meta });
 											setUploadedFile(meta);
 											if (data) {
 												handleImport(meta);
